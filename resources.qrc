@@ -1,7 +1,0 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource>
-    <file alias="file-svgrepo-com.svg">res/file-svgrepo-com.svg</file>
-    <file alias="camera-svgrepo-com.svg">res/camera-svgrepo-com.svg</file>
-    <file alias="cursor-click-svgrepo-com.svg">res/cursor-click-svgrepo-com.svg</file>
-</qresource>
-</RCC>

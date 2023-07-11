@@ -1,0 +1,5 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file alias="preferences.svg">res/preferences.svg</file>
+</qresource>
+</RCC>
