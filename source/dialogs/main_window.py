@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
+from dialogs.about import AboutWindow
 
 class MainWindow(QMainWindow):
     """Main Window."""
@@ -18,7 +19,8 @@ class MainWindow(QMainWindow):
         self.resize(800, 600)
 
         self.dialogs = {
-            'preferences': PreferencesWindow()
+            'preferences': PreferencesWindow(),
+            'about': AboutWindow()
         }
 
         self.centralWidget = QLabel("Hello, World")
@@ -163,6 +165,8 @@ class MainWindow(QMainWindow):
     #     self.centralWidget.setText("<b>Help > Help Content...</b> clicked")
     def about(self):
         self.centralWidget.setText("<b>Help > About...</b> clicked")
+        if ('about' in self.dialogs):
+            self.dialogs['about'].show()
     
     # def populateOpenRecent(self):
     #     # Step 1. Remove the old options from the menu
