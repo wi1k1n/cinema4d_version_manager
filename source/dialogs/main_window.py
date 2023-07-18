@@ -179,7 +179,7 @@ class MainWindow(QMainWindow):
 	# def helpContent(self):
 	#     self.centralWidget.setText("<b>Help > Help Content...</b> clicked")
 	def about(self):
-		self.centralWidget.setText("<b>Help > About...</b> clicked")
+		# self.centralWidget.setText("<b>Help > About...</b> clicked")
 		if ('about' in self.dialogs):
 			self.dialogs['about'].show()
 	# def populateOpenRecent(self):
@@ -198,3 +198,9 @@ class MainWindow(QMainWindow):
 	# def getWordCount(self):
 	#     # Logic for computing the word count goes here...
 	#     return 42
+
+	def closeEvent(self, event):
+		for v in self.dialogs.values():
+			if v is not None:
+				v.close()
+		event.accept()
