@@ -4,12 +4,18 @@ from functools import partial
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QKeySequence
 from PyQt5.QtWidgets import (
-	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QToolBar, QAction, QSpinBox
+	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QToolBar, QAction, QSpinBox, QWidget, QTabWidget
 )
 
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
+
+class C4DTile(QWidget):
+	pass
+
+class C4DTilesGrid(QWidget):
+	pass
 
 class MainWindow(QMainWindow):
 	"""Main Window."""
@@ -23,8 +29,17 @@ class MainWindow(QMainWindow):
 			'about': AboutWindow()
 		}
 
-		self.centralWidget = QLabel("Hello, World")
-		self.centralWidget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+		c4dTilesGrid = C4DTilesGrid()
+
+		self.centralWidget = QTabWidget()
+		self.centralWidget.addTab(c4dTilesGrid, "C4D Tiles")
+		
+		# label2 = QLabel("Widget in Tab 2.")
+		# self.centralWidget.addTab(label2, "Tab 2")
+
+		# self.centralWidget = QLabel("Hello, World")
+		# self.centralWidget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+		
 		self.setCentralWidget(self.centralWidget)
 
 		self._createActions()
