@@ -1,4 +1,4 @@
-import os
+import os, re
 
 def GetPrefsFolderPath():
 	path: str = os.path.join(GetAppDataPath(), 'c4d-version-manager')
@@ -15,10 +15,65 @@ def SafeCast(val, to_type, default=None):
 	except (ValueError, TypeError):
 		return default
 
+# Gathers information about cinema
+class C4DInfo:
+	def __init__(self, dir: str, ver: list[str], dirPrefs: str | None = None) -> None:
+		self.version: list[str] = ver
+		self.directory: str = dir
+		self.directoryPrefs: str = dirPrefs if dirPrefs else ''
+
+	def GetPathExecutable(self) -> str:
+		return os.path.join(self.directory, 'Cinema 4D.exe')
+
+	def GetPathConfigCinema(self) -> str:
+		return os.path.join(self.GetPathFolderResource(), 'config.cinema4d.txt')
+	
+	def GetPathFolderRoot(self) -> str:
+		return self.directory
+	
+	def GetPathFolderResource(self) -> str:
+		return os.path.join(self.directory, 'resource')
+	
+	def GetPathFolderPrefs(self) -> str:
+		return self.directoryPrefs
+
+	def GetPathFolderPlugins(self) -> str:
+		return os.path.join(self.directoryPrefs, 'plugins')
+	
+	def GetVersionString(self, formatted: bool = True, full: bool = False) -> str:
+		major: str = self.version[0]
+		if len(major) == 4: # new convention
+			return '.'.join(self.version if full else self.version[:-1])
+		return self.GetVersionMajor(formatted) + '.' + ''.join(self.version[1:])
+
+	def GetVersionMajor(self, formatted: bool = True) -> str:
+		major: str = self.version[0]
+		return ('R' if len(major) != 4 and formatted else '') + major
+
+# Tries to find corresponding preferences folder in the APPDATA directory
+def FindC4DPrefsFolder(folderPath: str) -> str | None:
+	appDataMaxonPath: str = os.path.join(GetAppDataPath(), 'Maxon')
+	if not os.path.isdir(appDataMaxonPath):
+		return None
+	
+	c4dDirName: str = os.path.basename(folderPath)
+	c4dDirNameLen: int = len(c4dDirName)
+	suffixPattern: str = '^_[A-Z0-9]{8}'
+
+	dirNames: list[str] = [f.name for f in os.scandir(appDataMaxonPath) if f.is_dir()]
+	for dir in dirNames:
+		if not dir.startswith(c4dDirName):
+			continue
+		suffix: str = dir[c4dDirNameLen:]
+		if not re.match(suffixPattern, suffix):
+			continue
+		return os.path.join(appDataMaxonPath, dir)
+	return None
+
 # Checks given folder path for containing Cinema 4D version
 C4D_NECESSARY_FILES = ['Cinema 4D.exe']
 C4D_NECESSARY_FOLDERS = ['corelibs', 'resource']
-def GetCinemaVersionFromFolder(folderPath: str) -> str | None:
+def GetC4DInfoFromFolder(folderPath: str) -> C4DInfo | None:
 	for file in C4D_NECESSARY_FILES:
 		curPath: str = os.path.join(folderPath, file)
 		if not os.path.isfile(curPath):
@@ -51,15 +106,18 @@ def GetCinemaVersionFromFolder(folderPath: str) -> str | None:
 	for v in c4dVersion.values():
 		if v == -1:
 			return None
-	return '.'.join([str(v) for v in c4dVersion.values()])
+
+	versionStringsList: list[str] = [str(v) for v in c4dVersion.values()]
+	prefsFolder: str | None = FindC4DPrefsFolder(folderPath)
+	return C4DInfo(folderPath, versionStringsList, prefsFolder)
 
 # Traverses directory until maxDepth, returns dict: path -> c4d_version
-def FindCinemaPackagesInFolder(path, maxDepth = 3) -> dict[str, str]:
-	c4dRootVersion: str | None = GetCinemaVersionFromFolder(path)
-	if c4dRootVersion:
-		return {path: c4dRootVersion}
+def FindCinemaPackagesInFolder(path, maxDepth = 3) -> dict[str, C4DInfo]:
+	c4dRootInfo: C4DInfo | None = GetC4DInfoFromFolder(path)
+	if c4dRootInfo:
+		return {path: c4dRootInfo}
 
-	ret: dict[str, str] = dict()
+	ret: dict[str, C4DInfo] = dict()
 
 	dirs: set[str] = set()
 	dirs.update([f.path for f in os.scandir(path) if f.is_dir()])
@@ -67,9 +125,9 @@ def FindCinemaPackagesInFolder(path, maxDepth = 3) -> dict[str, str]:
 	while len(dirs) and currentDepth < maxDepth:
 		newDirs: list[str] = []
 		for p in dirs:
-			c4dVersion: str | None = GetCinemaVersionFromFolder(p)
-			if c4dVersion:
-				ret[p] = c4dVersion
+			c4dInfo: C4DInfo | None = GetC4DInfoFromFolder(p)
+			if c4dInfo:
+				ret[p] = c4dInfo
 				continue
 			newDirs.append(p)
 		dirs = newDirs

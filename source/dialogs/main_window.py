@@ -29,32 +29,24 @@ from PyQt5.QtWidgets import (
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 import utils
+from utils import C4DInfo
 from gui_utils import *
 
 RES_FOLDER = os.path.join(os.getcwd(), 'res')
 IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
 C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
 
-class C4DEntry:
-	def __init__(self, dir: str, version: str):
-		self.directory: str = dir
-		self.version: str = version
-
-	def getVersionMajor(self, withR: bool = True) -> str:
-		major: str = self.version.partition('.')[0]
-		return major if len(major) == 4 else f'R{major}'
-
 class C4DTile(QFrame):
-	def __init__(self, c4d: C4DEntry):
+	def __init__(self, c4d: C4DInfo):
 		super().__init__()
-		self.c4d: C4DEntry = c4d
+		self.c4d: C4DInfo = c4d
 
 		self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
 		self.setLineWidth(1)
 		self.setFixedSize(128, 128)
 
 		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
-		c4dIconName: str = 'C4D ' + self.c4d.getVersionMajor() + '.png'
+		c4dIconName: str = 'C4D ' + self.c4d.GetVersionMajor() + '.png'
 		c4dIconPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconName)
 		pic = QPixmap(c4dIconPath if os.path.isfile(c4dIconPath) else os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
 
@@ -65,7 +57,7 @@ class C4DTile(QFrame):
 		picLabel.setCursor(QCursor(Qt.PointingHandCursor))
 
 		vers: QLabel = QLabel()
-		vers.setText(self.c4d.version)
+		vers.setText(self.c4d.GetVersionString())
 		vers.setFont(QFont('SblHebrew', 12))
 		vers.setAlignment(Qt.AlignBottom)
 
@@ -96,25 +88,33 @@ class C4DTile(QFrame):
 		pass
 
 	def _runC4D(self, args: list[str] = []):
-		c4dExecutablePath: str = os.path.join(self.c4d.directory, 'Cinema 4D.exe')
-		p = Popen([c4dExecutablePath] + args)
+		p = Popen([self.c4d.GetPathExecutable()] + args)
 		print(p.pid)
 
 	def _createTooltipMenuString(self):
-		return f'{self.c4d.directory}'
+		return f'{self.c4d.GetPathFolderRoot()}'
 	
 	def _addActions(self):
 		self.actionRunC4D = QAction('Run C4D')
-		self.actionRunC4D.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.directory)))
+		self.actionRunC4D.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.GetPathExecutable())))
 		self.actionRunC4DConsole = QAction('Run C4D w/console')
 		self.actionOpenFolder = QAction('Open folder')
-		self.actionOpenFolder.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.directory)))
+		self.actionOpenFolder.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.GetPathFolderRoot())))
+		self.actionOpenFolderPrefs = None
+		if self.c4d.GetPathFolderPrefs():
+			self.actionOpenFolderPrefs = QAction('Open folder prefs')
+			self.actionOpenFolderPrefs.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.GetPathFolderPrefs())))
 
 	def _contextMenuRequested(self):
 		menu = QtWidgets.QMenu()
-		menu.addAction(self.actionOpenFolder)
+
 		menu.addAction(self.actionRunC4D)
 		menu.addAction(self.actionRunC4DConsole)
+		menu.addSeparator()
+		menu.addAction(self.actionOpenFolder)
+		if self.actionOpenFolderPrefs:
+			menu.addAction(self.actionOpenFolderPrefs)
+
 		menu.exec_(QtGui.QCursor.pos())
 
 
@@ -122,7 +122,7 @@ class C4DTilesWidget(QScrollArea):
 	def __init__(self):
 		super().__init__()
 
-		self.c4dEntries: set[C4DEntry] = set()
+		self.c4dEntries: set[C4DInfo] = set()
 		self.tiles = list()
 
 		self.setWidgetResizable(True)
@@ -133,7 +133,7 @@ class C4DTilesWidget(QScrollArea):
 
 		self.updateTiles(set())
 	
-	def updateTiles(self, c4ds: set[C4DEntry]):
+	def updateTiles(self, c4ds: set[C4DInfo]):
 		self.c4dEntries = c4ds
 		self.tiles = [C4DTile(e) for e in self.c4dEntries]
 		for i in reversed(range(self.tilesLayout.count())):
@@ -330,13 +330,13 @@ class MainWindow(QMainWindow):
 			return print('ERROR: Preferences dialog wasn\'t found!')
 		dlg: PreferencesWindow = self.dialogs['preferences']
 		searchPaths: list[str] = dlg.GetSearchPaths()
-		c4dEntries: set[C4DEntry] = set()
+		c4dEntries: set[C4DInfo] = set()
 		for path in searchPaths:
-			c4dsDict: dict[str, str] | None = utils.FindCinemaPackagesInFolder(path)
+			c4dsDict: dict[str, C4DInfo] | None = utils.FindCinemaPackagesInFolder(path)
 			# print(c4dsDict)
 			if c4dsDict is None:
 				continue
-			c4dEntries.update([C4DEntry(p, v) for (p, v) in c4dsDict.items()])
+			c4dEntries.update([v for v in c4dsDict.values()])
 		self.c4dTilesTab.updateTiles(c4dEntries)
 	
 	# def getWordCount(self):
