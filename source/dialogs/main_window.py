@@ -104,6 +104,8 @@ class MainWindow(QMainWindow):
 		self._createContextMenu()
 		self._createStatusBar()
 		self._connectActions()
+
+		self.rescan()
 		
 	def _createMenuBar(self):
 		menuBar = self.menuBar()
