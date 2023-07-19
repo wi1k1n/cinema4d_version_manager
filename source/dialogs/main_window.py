@@ -31,12 +31,17 @@ import utils
 from gui_utils import *
 
 RES_FOLDER = os.path.join(os.getcwd(), 'res')
-IMAGES_FOLDER = os.path.join(RES_FOLDER, 'icons')
+IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
+C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
 
 class C4DEntry:
 	def __init__(self, dir: str, version: str):
 		self.directory: str = dir
 		self.version: str = version
+
+	def getVersionMajor(self, withR: bool = True) -> str:
+		major: str = self.version.partition('.')[0]
+		return major if len(major) == 4 else f'R{major}'
 
 class C4DTile(QFrame):
 	def __init__(self, c4d: C4DEntry):
@@ -47,8 +52,10 @@ class C4DTile(QFrame):
 		self.setLineWidth(1)
 		self.setFixedSize(128, 128)
 
-		print(os.getcwd())
-		pic = QPixmap(os.path.join(IMAGES_FOLDER, 'C4D 2024.png'))
+		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
+		c4dIconName: str = 'C4D ' + self.c4d.getVersionMajor() + '.png'
+		c4dIconPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconName)
+		pic = QPixmap(c4dIconPath if os.path.isfile(c4dIconPath) else os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
 
 		picLabel: QLabel = QLabel()
 		picLabel.setPixmap(pic)
