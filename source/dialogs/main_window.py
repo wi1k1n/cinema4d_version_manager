@@ -4,13 +4,31 @@ from functools import partial
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont
 from PyQt5.QtWidgets import (
-	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QToolBar, QAction, QSpinBox, QWidget, QTabWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QFrame, QSizePolicy, QStackedLayout
+	QApplication,
+	QLabel,
+	QMainWindow,
+	QMenu,
+	QMenuBar,
+	QToolBar,
+	QAction,
+	QSpinBox,
+	QWidget,
+	QTabWidget,
+	QGridLayout,
+	QVBoxLayout,
+	QHBoxLayout,
+	QLayout,
+	QFrame,
+	QSizePolicy,
+	QStackedLayout,
+	QScrollArea
 )
 
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
-import c4d.utils as utils
+import utils
+from gui_utils import *
 
 RES_FOLDER = os.path.join(os.getcwd(), 'res')
 IMAGES_FOLDER = os.path.join(RES_FOLDER, 'icons')
@@ -53,42 +71,46 @@ class C4DTile(QFrame):
 		picLabel.setFixedSize(picSize, picSize)
 
 
-class C4DTilesGrid(QWidget):
+class C4DTilesWidget(QScrollArea):
 	def __init__(self):
 		super().__init__()
 
 		self.c4dEntries: set[C4DEntry] = set()
 		self.tiles = list()
 
-		layout: QHBoxLayout = QHBoxLayout()
-		self.setLayout(layout)
+		self.setWidgetResizable(True)
+		self.setWidget(QWidget(self))
+		self.widget().setMinimumWidth(100)
+
+		self.tilesLayout = FlowLayout(self.widget())
 
 		self.updateTiles(set())
 	
 	def updateTiles(self, c4ds: set[C4DEntry]):
 		self.c4dEntries = c4ds
 		self.tiles = [C4DTile(e) for e in self.c4dEntries]
-		for i in reversed(range(self.layout().count())): 
-			self.layout().itemAt(i).widget().setParent(None)
+		for i in reversed(range(self.tilesLayout.count())):
+			self.tilesLayout.itemAt(i).widget().setParent(None)
 		for w in self.tiles:
-			self.layout().addWidget(w)
+			self.tilesLayout.addWidget(w)
 
 class MainWindow(QMainWindow):
 	"""Main Window."""
 	def __init__(self, parent=None):
-		super().__init__(parent)
+		super(MainWindow, self).__init__(parent)
 		self.setWindowTitle("C4D Selector")
 		self.resize(800, 600)
+		self.setMinimumSize(350, 250)
 
 		self.dialogs = {
 			'preferences': PreferencesWindow(),
 			'about': AboutWindow()
 		}
 
-		self.c4dTilesGrid = C4DTilesGrid()
+		self.c4dTilesTab: C4DTilesWidget = C4DTilesWidget()
 
 		self.centralWidget = QTabWidget()
-		self.centralWidget.addTab(self.c4dTilesGrid, "C4D Tiles")
+		self.centralWidget.addTab(self.c4dTilesTab, "C4D Tiles")
 		
 		# label2 = QLabel("Widget in Tab 2.")
 		# self.centralWidget.addTab(label2, "Tab 2")
@@ -266,7 +288,7 @@ class MainWindow(QMainWindow):
 			if c4dsDict is None:
 				continue
 			c4dEntries.update([C4DEntry(p, v) for (p, v) in c4dsDict.items()])
-		self.c4dTilesGrid.updateTiles(c4dEntries)
+		self.c4dTilesTab.updateTiles(c4dEntries)
 	
 	# def getWordCount(self):
 	#     # Logic for computing the word count goes here...
