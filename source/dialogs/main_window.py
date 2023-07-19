@@ -10,14 +10,15 @@ from PyQt5.QtWidgets import (
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
+import c4d.utils as utils
 
 RES_FOLDER = os.path.join(os.getcwd(), 'res')
 IMAGES_FOLDER = os.path.join(RES_FOLDER, 'icons')
 
 class C4DEntry:
-	def __init__(self):
-		self.directory: str = ''
-		self.version: str = ''
+	def __init__(self, dir: str, version: str):
+		self.directory: str = dir
+		self.version: str = version
 
 class C4DTile(QFrame):
 	def __init__(self, c4d: C4DEntry):
@@ -37,7 +38,7 @@ class C4DTile(QFrame):
 		picLabel.setAlignment(Qt.AlignCenter)
 
 		vers: QLabel = QLabel()
-		vers.setText("2024.0.0")
+		vers.setText(self.c4d.version)
 		vers.setFont(QFont('Comic Sans MS', 12))
 		vers.setAlignment(Qt.AlignBottom)
 
@@ -55,15 +56,22 @@ class C4DTile(QFrame):
 class C4DTilesGrid(QWidget):
 	def __init__(self):
 		super().__init__()
-		self.tiles = [
-			C4DTile(C4DEntry())
-		]
+
+		self.c4dEntries: set[C4DEntry] = set()
+		self.tiles = list()
 
 		layout: QHBoxLayout = QHBoxLayout()
-		for w in self.tiles:
-			layout.addWidget(w)
-
 		self.setLayout(layout)
+
+		self.updateTiles(set())
+	
+	def updateTiles(self, c4ds: set[C4DEntry]):
+		self.c4dEntries = c4ds
+		self.tiles = [C4DTile(e) for e in self.c4dEntries]
+		for i in reversed(range(self.layout().count())): 
+			self.layout().itemAt(i).widget().setParent(None)
+		for w in self.tiles:
+			self.layout().addWidget(w)
 
 class MainWindow(QMainWindow):
 	"""Main Window."""
@@ -77,10 +85,10 @@ class MainWindow(QMainWindow):
 			'about': AboutWindow()
 		}
 
-		c4dTilesGrid = C4DTilesGrid()
+		self.c4dTilesGrid = C4DTilesGrid()
 
 		self.centralWidget = QTabWidget()
-		self.centralWidget.addTab(c4dTilesGrid, "C4D Tiles")
+		self.centralWidget.addTab(self.c4dTilesGrid, "C4D Tiles")
 		
 		# label2 = QLabel("Widget in Tab 2.")
 		# self.centralWidget.addTab(label2, "Tab 2")
@@ -229,7 +237,7 @@ class MainWindow(QMainWindow):
 	#     self.centralWidget.setText("<b>Help > Help Content...</b> clicked")
 	def about(self):
 		# self.centralWidget.setText("<b>Help > About...</b> clicked")
-		if ('about' in self.dialogs):
+		if 'about' in self.dialogs:
 			self.dialogs['about'].show()
 			self.dialogs['about'].activateWindow()
 	# def populateOpenRecent(self):
@@ -245,7 +253,18 @@ class MainWindow(QMainWindow):
 	#     # Step 3. Add the actions to the menu
 	#     self.openRecentMenu.addActions(actions)
 	def rescan(self):
-		print('rescan')
+		if 'preferences' not in self.dialogs:
+			return print('ERROR: Preferences dialog wasn\'t found!')
+		dlg: PreferencesWindow = self.dialogs['preferences']
+		searchPaths: list[str] = dlg.GetSearchPaths()
+		c4dEntries: set[C4DEntry] = set()
+		for path in searchPaths:
+			c4dsDict: dict[str, str] | None = utils.FindCinemaPackagesInFolder(path)
+			print(c4dsDict)
+			if c4dsDict is None:
+				continue
+			c4dEntries.update([C4DEntry(p, v) for (p, v) in c4dsDict.items()])
+		self.c4dTilesGrid.updateTiles(c4dEntries)
 	
 	# def getWordCount(self):
 	#     # Logic for computing the word count goes here...

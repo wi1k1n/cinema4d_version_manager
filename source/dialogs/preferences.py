@@ -54,6 +54,9 @@ class PreferencesWindow(QMainWindow):
 		self.centralWidget.setLayout(self.prefsLayout)
 		self.setCentralWidget(self.centralWidget)
 	
+	def GetSearchPaths(self):
+		return ['D:\\Downloads']
+	
 	def _prefCategoryChanged(self, cur: QListWidgetItem, prev):
 		if cur is None:
 			return
