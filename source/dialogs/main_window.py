@@ -1,21 +1,69 @@
-import sys
+import sys, os
 from functools import partial
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont
 from PyQt5.QtWidgets import (
-	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QToolBar, QAction, QSpinBox, QWidget, QTabWidget
+	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QToolBar, QAction, QSpinBox, QWidget, QTabWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QFrame, QSizePolicy, QStackedLayout
 )
 
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 
-class C4DTile(QWidget):
-	pass
+RES_FOLDER = os.path.join(os.getcwd(), 'res')
+IMAGES_FOLDER = os.path.join(RES_FOLDER, 'icons')
+
+class C4DEntry:
+	def __init__(self):
+		self.directory: str = ''
+		self.version: str = ''
+
+class C4DTile(QFrame):
+	def __init__(self, c4d: C4DEntry):
+		super().__init__()
+		self.c4d: C4DEntry = c4d
+
+		self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
+		self.setLineWidth(1)
+		self.setFixedSize(128, 128)
+
+		print(os.getcwd())
+		pic = QPixmap(os.path.join(IMAGES_FOLDER, 'C4D 2024.png'))
+
+		picLabel: QLabel = QLabel()
+		picLabel.setPixmap(pic)
+		picLabel.setScaledContents(True)
+		picLabel.setAlignment(Qt.AlignCenter)
+
+		vers: QLabel = QLabel()
+		vers.setText("2024.0.0")
+		vers.setFont(QFont('Comic Sans MS', 12))
+		vers.setAlignment(Qt.AlignBottom)
+
+		layout: QVBoxLayout = QVBoxLayout()
+		layout.addWidget(picLabel)
+		layout.addWidget(vers)
+		layout.setAlignment(Qt.AlignCenter)
+
+		self.setLayout(layout)
+
+		picSize: int = int(min(self.width(), self.height()) * .6)
+		picLabel.setFixedSize(picSize, picSize)
+
 
 class C4DTilesGrid(QWidget):
-	pass
+	def __init__(self):
+		super().__init__()
+		self.tiles = [
+			C4DTile(C4DEntry())
+		]
+
+		layout: QHBoxLayout = QHBoxLayout()
+		for w in self.tiles:
+			layout.addWidget(w)
+
+		self.setLayout(layout)
 
 class MainWindow(QMainWindow):
 	"""Main Window."""
