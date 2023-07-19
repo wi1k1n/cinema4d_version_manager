@@ -1,8 +1,9 @@
 import sys, os
 from functools import partial
+from subprocess import Popen, PIPE
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QDesktopServices, QMouseEvent
 from PyQt5.QtWidgets import (
 	QApplication,
 	QLabel,
@@ -61,6 +62,7 @@ class C4DTile(QFrame):
 		picLabel.setPixmap(pic)
 		picLabel.setScaledContents(True)
 		picLabel.setAlignment(Qt.AlignCenter)
+		picLabel.setCursor(QCursor(Qt.PointingHandCursor))
 
 		vers: QLabel = QLabel()
 		vers.setText(self.c4d.version)
@@ -76,6 +78,44 @@ class C4DTile(QFrame):
 
 		picSize: int = int(min(self.width(), self.height()) * .6)
 		picLabel.setFixedSize(picSize, picSize)
+
+		self.setToolTip(self._createTooltipMenuString())
+		
+		self._addActions()
+		picLabel.mousePressEvent = self._mouseClicked
+
+		self.setContextMenuPolicy(Qt.CustomContextMenu)
+		self.customContextMenuRequested.connect(self._contextMenuRequested)
+	
+	def _mouseClicked(self, evt: QMouseEvent):
+		if evt.button() == Qt.LeftButton:
+			if evt.modifiers() & Qt.KeyboardModifier.ControlModifier: # run with console
+				self._runC4D(['g_console=true'])
+			else:
+				self._runC4D()
+		pass
+
+	def _runC4D(self, args: list[str] = []):
+		c4dExecutablePath: str = os.path.join(self.c4d.directory, 'Cinema 4D.exe')
+		p = Popen([c4dExecutablePath] + args)
+		print(p.pid)
+
+	def _createTooltipMenuString(self):
+		return f'{self.c4d.directory}'
+	
+	def _addActions(self):
+		self.actionRunC4D = QAction('Run C4D')
+		self.actionRunC4D.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.directory)))
+		self.actionRunC4DConsole = QAction('Run C4D w/console')
+		self.actionOpenFolder = QAction('Open folder')
+		self.actionOpenFolder.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.directory)))
+
+	def _contextMenuRequested(self):
+		menu = QtWidgets.QMenu()
+		menu.addAction(self.actionOpenFolder)
+		menu.addAction(self.actionRunC4D)
+		menu.addAction(self.actionRunC4DConsole)
+		menu.exec_(QtGui.QCursor.pos())
 
 
 class C4DTilesWidget(QScrollArea):
@@ -208,7 +248,7 @@ class MainWindow(QMainWindow):
 	
 	def _createContextMenu(self):
 		# Setting contextMenuPolicy
-		self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
+		# self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
 		# # Populating the widget with actions
 		# self.centralWidget.addAction(self.newAction)
 		# self.centralWidget.addAction(self.openAction)
@@ -219,6 +259,7 @@ class MainWindow(QMainWindow):
 		# self.centralWidget.addAction(self.copyAction)
 		# self.centralWidget.addAction(self.pasteAction)
 		# self.centralWidget.addAction(self.cutAction)
+		pass
 
 	def _createStatusBar(self):
 		self.statusbar = self.statusBar()

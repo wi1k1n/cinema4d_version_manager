@@ -31,13 +31,13 @@ class PreferencesWindow(QMainWindow):
 
 		self.categories = {
 			'General': self._createPrefGeneral(),
+			'Search paths': self._createPrefPaths(),
 			'Appearance': self._createPrefAppearance(),
-			'Search paths': self._createPrefPaths()
 		}
 
 		self.setWindowTitle("Preferences")
 		self.setWindowFlags(self.windowFlags() & Qt.WindowCloseButtonHint)
-		self.resize(400, 200)
+		self.resize(400, 400)
 
 		# Stack of widgets containing preferences per category
 		self.contentStack = QStackedWidget()
