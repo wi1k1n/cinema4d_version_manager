@@ -64,7 +64,7 @@ class C4DTile(QFrame):
 
 		vers: QLabel = QLabel()
 		vers.setText(self.c4d.version)
-		vers.setFont(QFont('Comic Sans MS', 12))
+		vers.setFont(QFont('SblHebrew', 12))
 		vers.setAlignment(Qt.AlignBottom)
 
 		layout: QVBoxLayout = QVBoxLayout()
@@ -255,9 +255,10 @@ class MainWindow(QMainWindow):
 	# def saveFile(self):
 	#     self.centralWidget.setText("<b>File > Save</b> clicked")
 	def openPreferences(self):
-		if ('preferences' in self.dialogs):
-			self.dialogs['preferences'].show()
-			self.dialogs['preferences'].activateWindow()
+		if 'preferences' in self.dialogs:
+			dlg: PreferencesWindow = self.dialogs['preferences']
+			dlg.show()
+			dlg.activateWindow()
 	# def copyContent(self):
 	#     self.centralWidget.setText("<b>Edit > Copy</b> clicked")
 	# def pasteContent(self):
@@ -291,7 +292,7 @@ class MainWindow(QMainWindow):
 		c4dEntries: set[C4DEntry] = set()
 		for path in searchPaths:
 			c4dsDict: dict[str, str] | None = utils.FindCinemaPackagesInFolder(path)
-			print(c4dsDict)
+			# print(c4dsDict)
 			if c4dsDict is None:
 				continue
 			c4dEntries.update([C4DEntry(p, v) for (p, v) in c4dsDict.items()])

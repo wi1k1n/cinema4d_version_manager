@@ -1,14 +1,23 @@
 import os
 
-C4D_NECESSARY_FILES = ['Cinema 4D.exe']
-C4D_NECESSARY_FOLDERS = ['corelibs', 'resource']
+def GetPrefsFolderPath():
+	path: str = os.path.join(GetAppDataPath(), 'c4d-version-manager')
+	os.makedirs(path, exist_ok=True)
+	return path
 
-def safe_cast(val, to_type, default=None):
+def GetAppDataPath():
+	return os.getenv('APPDATA')
+
+# Tries to cast given value to type, falls back to default if error
+def SafeCast(val, to_type, default=None):
 	try:
 		return to_type(val)
 	except (ValueError, TypeError):
 		return default
 
+# Checks given folder path for containing Cinema 4D version
+C4D_NECESSARY_FILES = ['Cinema 4D.exe']
+C4D_NECESSARY_FOLDERS = ['corelibs', 'resource']
 def GetCinemaVersionFromFolder(folderPath: str) -> str | None:
 	for file in C4D_NECESSARY_FILES:
 		curPath: str = os.path.join(folderPath, file)
@@ -35,7 +44,7 @@ def GetCinemaVersionFromFolder(folderPath: str) -> str | None:
 			for i in range(1, 5):
 				curDefinePart: str = C4V_VERSION_PART_PREFIX + str(i)
 				if line.startswith(curDefinePart):
-					c4dVersion[i] = safe_cast(line[len(curDefinePart):].strip(), int, -1)
+					c4dVersion[i] = SafeCast(line[len(curDefinePart):].strip(), int, -1)
 					versionPartCnt += 1
 					break
 	# validate cinema version
