@@ -1,4 +1,5 @@
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
 	QLabel,
 	QMainWindow,
@@ -9,7 +10,8 @@ from PyQt5.QtWidgets import (
 	QVBoxLayout,
 	QPushButton,
 	QListWidgetItem,
-	QStackedWidget
+	QStackedWidget,
+	QFileDialog
 )
 
 class PreferencesWindow(QMainWindow):
@@ -22,7 +24,7 @@ class PreferencesWindow(QMainWindow):
 		}
 
 		self.setWindowTitle("Preferences")
-		self.setWindowFlags(Qt.WindowCloseButtonHint)
+		self.setWindowFlags(self.windowFlags() & Qt.WindowCloseButtonHint)
 		self.resize(400, 200)
 		
 		# Stack of widgets containing pref entries for each category
@@ -80,13 +82,63 @@ class PreferencesWindow(QMainWindow):
 		return prefEntriesWidget
 
 	def _createPrefPaths(self):
-		prefEntriesLayout = QVBoxLayout()
-		prefEntriesLayout.addWidget(QLabel("Path1"))
-		prefEntriesLayout.addWidget(QLabel("Path2"))
-		prefEntriesLayout.addWidget(QPushButton("Commit"))
-		prefEntriesLayout.addStretch()
+		pathsList = QListWidget()
+		buttons = {
+			'add': QPushButton('+'),
+			'remove': QPushButton('-'),
+			'up': QPushButton('↑'),
+			'down': QPushButton('↓'),
+		}
+		def updateButtonsEnabled():
+			curRow = pathsList.currentRow()
+			somethingSelected = curRow >= 0
+			buttons['remove'].setEnabled(somethingSelected)
+			buttons['up'].setEnabled(somethingSelected and curRow > 0)
+			buttons['down'].setEnabled(somethingSelected and curRow < pathsList.count() - 1)
+			
+		# for idx in range(pathsList.count()):
+		# 	item = pathsList.item(idx)
+		# 	item.setFlags(item.flags() | Qt.ItemIsEditable)
+
+		def pathListClicked(cur):
+			print(cur)
+			updateButtonsEnabled()
+		pathsList.clicked.connect(pathListClicked)
+		
+		for btn in buttons.values():
+			btn.setFont(QFont('Comic Sans MS', 11))
+			btn.setFixedWidth(32)
+
+
+		def btnAddClicked(t):
+			filePath: str = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+			newItem = QListWidgetItem(filePath)
+			pathsList.addItem(newItem)
+			pathsList.setCurrentItem(newItem)
+			print('btnAdd: ', filePath)
+			updateButtonsEnabled()
+		buttons['add'].clicked.connect(btnAddClicked)
+
+		def btnRemoveClicked(t):
+			print('btnRemove: ', t)
+			updateButtonsEnabled()
+		buttons['remove'].clicked.connect(btnRemoveClicked)
+		
+		buttonsLayout = QHBoxLayout()
+		buttonsLayout.addStretch()
+		for btn in buttons.values():
+			buttonsLayout.addWidget(btn)
+
+		buttonsGroupWidget = QWidget()
+		buttonsGroupWidget.setLayout(buttonsLayout)
+
+		layout = QVBoxLayout()
+		layout.addWidget(pathsList)
+		# layout.addWidget(QLabel("Path2"))
+		layout.addWidget(buttonsGroupWidget)
+		# layout.addStretch()
 
 		prefEntriesWidget = QWidget()
-		prefEntriesWidget.setLayout(prefEntriesLayout)
+		prefEntriesWidget.setLayout(layout)
 
 		return prefEntriesWidget

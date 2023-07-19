@@ -13,6 +13,7 @@ class AboutWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("About")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowMinimizeButtonHint)
         self.setFixedSize(240, 80)
 
         self.centralWidget = QLabel("Cinema 4D instances lister"

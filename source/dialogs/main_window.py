@@ -106,9 +106,11 @@ class MainWindow(QMainWindow):
 		# self.openRecentMenu = fileMenu.addMenu("Open Recent")
 		# fileMenu.addAction(self.saveAction)
 		# fileMenu.addSeparator()
-		fileMenu.addAction(self.prefsAction)
+		fileMenu.addAction(self.actionRescan)
 		fileMenu.addSeparator()
-		fileMenu.addAction(self.exitAction)
+		fileMenu.addAction(self.actionPrefs)
+		fileMenu.addSeparator()
+		fileMenu.addAction(self.actionExit)
 		
 		# editMenu = menuBar.addMenu("&Edit")
 		# editMenu.addAction(self.copyAction)
@@ -122,7 +124,7 @@ class MainWindow(QMainWindow):
 		
 		helpMenu = menuBar.addMenu("&Help")
 		# helpMenu.addAction(self.helpContentAction)
-		helpMenu.addAction(self.aboutAction) 
+		helpMenu.addAction(self.actionAbout) 
 	
 	def _createToolBars(self):
 		# fileToolBar = self.addToolBar("File")
@@ -142,23 +144,19 @@ class MainWindow(QMainWindow):
 		pass
 	
 	def _createActions(self):
-		# # Creating action using the first constructor
-		# self.newAction = QAction(QIcon(":file-svgrepo-com.svg"), "&New", self)
-		# self.openAction = QAction(QIcon(":camera-svgrepo-com.svg"), "&Open...", self)
-		# self.saveAction = QAction(QIcon(":cursor-click-svgrepo-com.svg"), "&Save", self)
-		self.prefsAction = QAction(QIcon(":preferences.svg"), "&Preferences", self)
-		self.exitAction = QAction("&Exit", self)
-		# self.copyAction = QAction("&Copy", self)
-		# self.pasteAction = QAction("&Paste", self)
-		# self.cutAction = QAction("C&ut", self)
-		# self.helpContentAction = QAction("&Help Content", self)
-		self.aboutAction = QAction("&About", self)
+		self.actionPrefs = QAction(QIcon(":preferences.svg"), "&Preferences", self)
+		self.actionPrefs.setShortcut("Ctrl+E")
+
+		self.actionExit = QAction("&Exit", self)
+		self.actionAbout = QAction("&About", self)
+		
+		self.actionRescan = QAction("&Rescan", self)
+		self.actionRescan.setShortcut(QKeySequence.Refresh)
 		
 		# # Using string-based key sequences
 		# self.newAction.setShortcut("Ctrl+N")
 		# self.openAction.setShortcut("Ctrl+O")
 		# self.saveAction.setShortcut("Ctrl+S")
-		self.prefsAction.setShortcut("Ctrl+E")
 		
 		# self.copyAction.setShortcut(QKeySequence.Copy)
 		# self.pasteAction.setShortcut(QKeySequence.Paste)
@@ -197,15 +195,17 @@ class MainWindow(QMainWindow):
 		# self.openAction.triggered.connect(self.openFile)
 		# self.openRecentMenu.aboutToShow.connect(self.populateOpenRecent)
 		# self.saveAction.triggered.connect(self.saveFile)
-		self.prefsAction.triggered.connect(self.openPreferences)
-		self.exitAction.triggered.connect(self.close)
+		self.actionPrefs.triggered.connect(self.openPreferences)
+		self.actionExit.triggered.connect(self.close)
 		# # Connect Edit actions
 		# self.copyAction.triggered.connect(self.copyContent)
 		# self.pasteAction.triggered.connect(self.pasteContent)
 		# self.cutAction.triggered.connect(self.cutContent)
 		# # Connect Help actions
 		# self.helpContentAction.triggered.connect(self.helpContent)
-		self.aboutAction.triggered.connect(self.about)
+		self.actionAbout.triggered.connect(self.about)
+
+		self.actionRescan.triggered.connect(self.rescan)
 	
 	# def newFile(self):
 	#     self.centralWidget.setText("<b>File > New</b> clicked")
@@ -218,6 +218,7 @@ class MainWindow(QMainWindow):
 	def openPreferences(self):
 		if ('preferences' in self.dialogs):
 			self.dialogs['preferences'].show()
+			self.dialogs['preferences'].activateWindow()
 	# def copyContent(self):
 	#     self.centralWidget.setText("<b>Edit > Copy</b> clicked")
 	# def pasteContent(self):
@@ -230,6 +231,7 @@ class MainWindow(QMainWindow):
 		# self.centralWidget.setText("<b>Help > About...</b> clicked")
 		if ('about' in self.dialogs):
 			self.dialogs['about'].show()
+			self.dialogs['about'].activateWindow()
 	# def populateOpenRecent(self):
 	#     # Step 1. Remove the old options from the menu
 	#     self.openRecentMenu.clear()
@@ -242,6 +244,8 @@ class MainWindow(QMainWindow):
 	#         actions.append(action)
 	#     # Step 3. Add the actions to the menu
 	#     self.openRecentMenu.addActions(actions)
+	def rescan(self):
+		print('rescan')
 	
 	# def getWordCount(self):
 	#     # Logic for computing the word count goes here...
