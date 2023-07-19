@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import (
 	QListWidgetItem,
 	QStackedWidget,
 	QFileDialog,
-	QLayout
+	QLayout,
+	QAbstractItemView
 )
 
 from version import *
@@ -158,37 +159,27 @@ class PreferencesWindow(QMainWindow):
 		return prefEntriesWidget
 
 	def _createPrefPaths(self):
-		# for p in self.searchPaths:
-		# 	self._addSearchPath(p)
+		self.pathsList.setDragDropMode(QAbstractItemView.InternalMove)
 
 		buttons = {
-			'add': QPushButton('+'),
-			'remove': QPushButton('-'),
-			'up': QPushButton('↑'),
-			'down': QPushButton('↓'),
+			'add': QPushButton('Add path'),
+			'remove': QPushButton('Remove'),
 		}
 		def updateButtonsEnabled():
-			curRow = self.pathsList.currentRow()
-			somethingSelected = curRow >= 0
-			buttons['remove'].setEnabled(somethingSelected)
-			buttons['up'].setEnabled(somethingSelected and curRow > 0)
-			buttons['down'].setEnabled(somethingSelected and curRow < self.pathsList.count() - 1)
+			buttons['remove'].setEnabled(self.pathsList.currentRow() >= 0)
+		updateButtonsEnabled()
 
+		self.pathsList.itemSelectionChanged.connect(lambda: updateButtonsEnabled())
 		self.pathsList.doubleClicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.pathsList.currentItem().text())))
-		
-		for btn in buttons.values():
-			btn.setFont(QFont('Comic Sans MS', 11))
-			btn.setFixedWidth(32)
 
 		def btnAddClicked(t):
 			filePath: str = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-			# print('btnAdd: ', filePath)
-			self._addSearchPath(filePath)
-			updateButtonsEnabled()
+			if filePath:
+				self._addSearchPath(filePath)
+				updateButtonsEnabled()
 		buttons['add'].clicked.connect(btnAddClicked)
 
 		def btnRemoveClicked(t):
-			# print('btnRemove: ', t)
 			if self.pathsList.currentRow() < 0:
 				return
 			self.pathsList.takeItem(self.pathsList.currentRow())
