@@ -1,17 +1,20 @@
-import os, re
+import os, re, datetime as dt
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-def GetPrefsFolderPath():
+def GetPrefsFolderPath() -> str:
 	path: str = os.path.join(GetAppDataPath(), 'c4d-version-manager')
 	os.makedirs(path, exist_ok=True)
 	return path
 
-def GetAppDataPath():
+def GetAppDataPath() -> None:
 	return os.getenv('APPDATA')
 
-def OpenFolderInDefaultExplorer(path):
+def OpenFolderInDefaultExplorer(path: str) -> None:
 	QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+def GetFolderTimestampCreated(path: str) -> dt.datetime:
+	return dt.datetime.fromtimestamp(os.stat(path).st_ctime)
 
 # Tries to cast given value to type, falls back to default if error
 def SafeCast(val, to_type, default=None):
@@ -36,6 +39,9 @@ class C4DInfo:
 	def GetPathFolderRoot(self) -> str:
 		return self.directory
 	
+	def GetNameFolderRoot(self) -> str:
+		return os.path.basename(self.GetPathFolderRoot())
+
 	def GetPathFolderResource(self) -> str:
 		return os.path.join(self.directory, 'resource')
 	
