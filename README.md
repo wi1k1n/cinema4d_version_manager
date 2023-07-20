@@ -3,3 +3,4 @@
 
 ### TODOs:
 * Show which instances are currently running
+* Means to sort tags (e.g. via context menu)

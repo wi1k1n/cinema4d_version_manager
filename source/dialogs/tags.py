@@ -191,6 +191,7 @@ class TagsWindow(QDockWidget):
 		super().__init__(parent)
 
 		self.manageTagWindow: ManageTagDialog = ManageTagDialog()
+		self.tagWidgets: list[TagWidget] = list()
 
 		self.setWindowTitle("Tags")
 		self.setWindowFlags(self.windowFlags() & Qt.WindowCloseButtonHint)
@@ -202,12 +203,9 @@ class TagsWindow(QDockWidget):
 		widget = QtWidgets.QWidget(mainArea)
 		widget.setMinimumWidth(20)
 
-		self.tagWidgets: list[TagWidget] = [TagWidget(t) for t in tags]
-		layout = FlowLayout(widget)
-		self.words = []
-		for tagWidget in self.tagWidgets:
-			tagWidget.mouseDoubleClickEvent = partial(self._openManageTagWindowExisting, tagWidget)
-			layout.addWidget(tagWidget)
+		self.tagsFlowLayout = FlowLayout(widget)
+		for tag in tags:
+			self._addTag(tag)
 
 		mainArea.setWidget(widget)
 		self.setWidget(mainArea)
@@ -215,14 +213,25 @@ class TagsWindow(QDockWidget):
 		self.mouseDoubleClickEvent = self._openManageTagWindowNew
 		self.manageTagWindow.accepted.connect(self._onManageTagAccepted)
 	
+	def _addTag(self, tag: C4DTag):
+		tagWidget: TagWidget = TagWidget(tag)
+		tagWidget.mouseDoubleClickEvent = partial(self._openManageTagWindowExisting, tagWidget)
+		self.tagsFlowLayout.addWidget(tagWidget)
+		self.tagWidgets.append(tagWidget)
+
 	def _onManageTagAccepted(self):
 		tag: C4DTag = self.manageTagWindow.GetTag()
+		tagNew: C4DTag = self.manageTagWindow.GetTagEdited()
+		existingTags: list[C4DTag] = [t.GetTag() for t in self.tagWidgets]
 		try:
-			findIdx: int = [t.GetTag() for t in self.tagWidgets].index(tag)
-			print('accepted:', tag.name)
-			self.tagWidgets[findIdx].SetTag(self.manageTagWindow.GetTagEdited())
+			findIdx: int = existingTags.index(tag)
+			self.tagWidgets[findIdx].SetTag(tagNew)
 		except:
 			print('accepted: was new')
+			if tagNew in existingTags: # TODO: proper check for existence
+				print('Already exists!!!')
+				return
+			self._addTag(tagNew)
 	
 	def _openManageTagWindowExisting(self, tagWidget: TagWidget, evt: QMouseEvent):
 		self.manageTagWindow.SetTag(tagWidget.GetTag())
