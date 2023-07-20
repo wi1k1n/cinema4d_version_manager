@@ -16,11 +16,13 @@ from PyQt5.QtWidgets import (
 	QFrame,
 	QScrollArea,
 	QGroupBox,
+	QTreeWidget, QTreeWidgetItem,
 )
 
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
+from dialogs.tags import TagsWindow
 from utils import *
 from gui_utils import *
 
@@ -182,11 +184,19 @@ class MainWindow(QMainWindow):
 
 		self.dialogs = {
 			'preferences': PreferencesWindow(),
+			'tags': TagsWindow(),
 			'about': AboutWindow()
 		}
 
 		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget()
-		self.c4dTabTableWidget: QLabel = QLabel('Table')
+		self.c4dTabTableWidget: QTreeWidget = QTreeWidget()
+		
+		self.c4dTabTableWidget.setColumnCount(4)
+		self.c4dTabTableWidget.setHeaderLabels(['Fav', 'Path', 'Version', 'Date'])
+		for i in range(5):
+			item: QTreeWidgetItem = QTreeWidgetItem(self.c4dTabTableWidget)
+			for j in range(self.c4dTabTableWidget.columnCount()):
+				item.setText(j, f'Col#{i}: text{j}')
 
 		self.centralWidget = QTabWidget()
 		self.centralWidget.addTab(self.c4dTabTiles, "Tiles")
@@ -212,6 +222,9 @@ class MainWindow(QMainWindow):
 		
 		self.actionRescan = QAction("&Rescan", self)
 		self.actionRescan.setShortcut(QKeySequence.Refresh)
+
+		self.actionTags = QAction("&Tags", self)
+		self.actionTags.setShortcut("Ctrl+T")
 		
 		# # Adding help tips
 		# newTip = "Create a new file"
@@ -228,6 +241,9 @@ class MainWindow(QMainWindow):
 		fileMenu.addAction(self.actionPrefs)
 		fileMenu.addSeparator()
 		fileMenu.addAction(self.actionExit)
+		
+		editMenu = menuBar.addMenu("&Edit")
+		editMenu.addAction(self.actionTags)
 		
 		viewMenu = menuBar.addMenu("&View")
 		viewMenu.addAction(self.actionAbout)
@@ -264,16 +280,26 @@ class MainWindow(QMainWindow):
 		self.actionExit.triggered.connect(self.close)
 		self.actionAbout.triggered.connect(self.about)
 		self.actionRescan.triggered.connect(self.rescan)
+		self.actionTags.triggered.connect(self.openTags)
 	
 	def openPreferences(self):
 		if 'preferences' in self.dialogs:
 			dlg: PreferencesWindow = self.dialogs['preferences']
 			dlg.show()
 			dlg.activateWindow()
+
 	def about(self):
 		if 'about' in self.dialogs:
 			self.dialogs['about'].show()
 			self.dialogs['about'].activateWindow()
+
+	def openTags(self):
+		if 'tags' in self.dialogs:
+			dlg: TagsWindow = self.dialogs['tags']
+			self.addDockWidget(Qt.RightDockWidgetArea, dlg)
+			dlg.show()
+			dlg.activateWindow()
+
 	# def populateOpenRecent(self):
 	#     # Step 1. Remove the old options from the menu
 	#     self.openRecentMenu.clear()
