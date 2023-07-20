@@ -2,7 +2,7 @@ import os, json, typing
 from functools import partial
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import Qt, QUrl, QRect, QPoint, QTimer
+from PyQt5.QtCore import Qt, QUrl, QRect, QPoint, QTimer, QSize
 from PyQt5.QtGui import QFont, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen
 from PyQt5.QtWidgets import (
 	QLabel,
@@ -22,7 +22,8 @@ from PyQt5.QtWidgets import (
 	QColorDialog,
 	QFormLayout,
 	QLineEdit,
-	QDialogButtonBox
+	QDialogButtonBox,
+	QSizePolicy
 )
 
 from version import *
@@ -44,6 +45,9 @@ class BubbleWidget(DraggableQLabel):
 		# self.mouseLeaveTimer: QTimer = QTimer(self, interval=50, timeout=self._mouseLeaveTimerCallback)
 
 		self.setContentsMargins(margin, margin, margin, margin)
+		self.setAlignment(Qt.AlignCenter)
+		self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+		
 		# self.setMouseTracking(True)
 	
 	# def _mouseLeaveTimerCallback(self):
@@ -58,6 +62,11 @@ class BubbleWidget(DraggableQLabel):
 	def SetColor(self, bgColor: QColor | None):
 		self.bgColor = bgColor
 		self.update()
+	
+	def SetText(self, txt: str):
+		self.setText(txt)
+		self.setFixedSize(1, 1) # doesn't work without manually shrinking it first
+		self.setFixedSize(self.sizeHint() + QSize(self.roundingMargin, self.roundingMargin) * 2)
 
 	def paintEvent(self, evt: QPaintEvent):
 		p: QPainter = QPainter(self)
@@ -76,6 +85,7 @@ class TagWidget(BubbleWidget):
 	def __init__(self, tag: C4DTag):
 		super().__init__(tag.name, tag.color)
 		
+		self.setFont(QtGui.QFont('SblHebrew', 18))
 		self.SetTag(tag)
 		# self.mousePressEvent = self._onMousePress
 	
@@ -84,7 +94,7 @@ class TagWidget(BubbleWidget):
 	
 	def SetTag(self, tag: C4DTag):
 		self.tag: C4DTag = tag
-		self.setText(tag.name)
+		self.SetText(tag.name)
 		self.SetColor(tag.color)
 	
 	# def _onMousePress(self, evt: QMouseEvent):
@@ -190,14 +200,12 @@ class TagsWindow(QDockWidget):
 		mainArea.setWidgetResizable(True)
 
 		widget = QtWidgets.QWidget(mainArea)
-		widget.setMinimumWidth(50)
+		widget.setMinimumWidth(20)
 
 		self.tagWidgets: list[TagWidget] = [TagWidget(t) for t in tags]
 		layout = FlowLayout(widget)
 		self.words = []
 		for tagWidget in self.tagWidgets:
-			tagWidget.setFont(QtGui.QFont('SblHebrew', 18))
-			tagWidget.setFixedWidth(tagWidget.sizeHint().width())
 			tagWidget.mouseDoubleClickEvent = partial(self._openManageTagWindowExisting, tagWidget)
 			layout.addWidget(tagWidget)
 
