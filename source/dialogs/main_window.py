@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
-from dialogs.tags import TagsWindow
+from dialogs.tags import TagsWindow, C4DTag
 from utils import *
 from gui_utils import *
 
@@ -188,7 +188,13 @@ class MainWindow(QMainWindow):
 	"""Main Window."""
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
+		
 		self.c4dEntries: list[C4DInfo] = list()
+		self.c4dTags: list[C4DTag] = [
+			C4DTag('Favorite'),
+			C4DTag('Customer'),
+			C4DTag('Package'),
+		]
 
 		self.setWindowTitle("C4D Selector")
 		self.resize(800, 600)
@@ -196,7 +202,7 @@ class MainWindow(QMainWindow):
 
 		self.dialogs = {
 			'preferences': PreferencesWindow(),
-			'tags': TagsWindow(),
+			'tags': TagsWindow(tags=self.c4dTags),
 			'about': AboutWindow()
 		}
 
@@ -224,6 +230,7 @@ class MainWindow(QMainWindow):
 		self._connectActions()
 
 		self.rescan()
+		self.openTags()
 	
 	def _createActions(self):
 		self.actionPrefs = QAction(QIcon(":preferences.svg"), "&Preferences", self)

@@ -195,7 +195,7 @@ class BubbleWidget(QLabel):
 		p = QtGui.QPainter(self)
 		p.setRenderHint(QtGui.QPainter.Antialiasing, True)
 		p.drawRoundedRect(0, 0, self.width() - 1, self.height() - 1, self.rounding, self.rounding)
-		super(BubbleWidget,self).paintEvent(e)
+		super(BubbleWidget, self).paintEvent(e)
 
 class DraggableBubbleWidget(BubbleWidget):
 	def __init__(self, text):

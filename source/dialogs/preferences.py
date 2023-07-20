@@ -96,6 +96,9 @@ class PreferencesWindow(QMainWindow):
 		return os.path.join(prefsFolderPath, PreferencesWindow.PREFERENCES_FILENAME)
 
 	def LoadPreferences(self):
+		# TODO: Use QSettings instead
+		# https://gist.github.com/eyllanesc/be8a476bb7038c7579c58609d7d0f031
+		# https://docs.huihoo.com/pyqt/PyQt5/pyqt_qsettings.html
 		prefsFilePath: str = PreferencesWindow.GetPreferencesSavePath()
 		if not os.path.isfile(prefsFilePath):
 			return
