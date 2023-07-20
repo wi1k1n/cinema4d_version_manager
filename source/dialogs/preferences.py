@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
 
 from version import *
 import utils
+from utils import OpenFolderInDefaultExplorer
 
 class PreferencesWindow(QMainWindow):
 	PREFERENCES_FILENAME = 'preferences.json'
@@ -59,7 +60,7 @@ class PreferencesWindow(QMainWindow):
 
 		# Preferences buttons
 		self.openPreferencesFolderButton: QPushButton = QPushButton('Open preferences folder')
-		self.openPreferencesFolderButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(utils.GetPrefsFolderPath())))
+		self.openPreferencesFolderButton.clicked.connect(lambda: OpenFolderInDefaultExplorer(utils.GetPrefsFolderPath()))
 		self.savePreferencesButton: QPushButton = QPushButton('Save preferences')
 		self.savePreferencesButton.clicked.connect(self.SavePreferences)
 		# Save preferences layout
@@ -170,7 +171,7 @@ class PreferencesWindow(QMainWindow):
 		updateButtonsEnabled()
 
 		self.pathsList.itemSelectionChanged.connect(lambda: updateButtonsEnabled())
-		self.pathsList.doubleClicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.pathsList.currentItem().text())))
+		self.pathsList.doubleClicked.connect(lambda: OpenFolderInDefaultExplorer(self.pathsList.currentItem().text()))
 
 		def btnAddClicked(t):
 			filePath: str = str(QFileDialog.getExistingDirectory(self, "Select Directory"))

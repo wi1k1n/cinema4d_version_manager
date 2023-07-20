@@ -2,8 +2,8 @@ import sys, os
 from functools import partial
 from subprocess import Popen, PIPE
 
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QDesktopServices, QMouseEvent
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent
 from PyQt5.QtWidgets import (
 	QApplication,
 	QLabel,
@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 import utils
-from utils import C4DInfo
+from utils import C4DInfo, OpenFolderInDefaultExplorer
 from gui_utils import *
 
 RES_FOLDER = os.path.join(os.getcwd(), 'res')
@@ -81,10 +81,15 @@ class C4DTile(QFrame):
 	
 	def _mouseClicked(self, evt: QMouseEvent):
 		if evt.button() == Qt.LeftButton:
-			if evt.modifiers() & Qt.KeyboardModifier.ControlModifier: # run with console
-				self._runC4D(['g_console=true'])
-			else:
-				self._runC4D()
+			if evt.modifiers() & Qt.KeyboardModifier.ControlModifier:
+				if evt.modifiers() & Qt.KeyboardModifier.ShiftModifier: 	# Ctrl+Shift+Click: open prefs folder
+					self.actionOpenFolderPrefs.trigger()
+				else: 														# Ctrl+Click: run with console
+					self.actionRunC4DConsole.trigger()
+			elif evt.modifiers() & Qt.KeyboardModifier.ShiftModifier: 		# Shift+Click: open c4d folder
+				self.actionOpenFolder.trigger()
+			else: 															# Click: run c4d
+				self.actionRunC4D.trigger()
 		pass
 
 	def _runC4D(self, args: list[str] = []):
@@ -96,14 +101,15 @@ class C4DTile(QFrame):
 	
 	def _addActions(self):
 		self.actionRunC4D = QAction('Run C4D')
-		self.actionRunC4D.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.GetPathExecutable())))
+		self.actionRunC4D.triggered.connect(lambda: self._runC4D())
 		self.actionRunC4DConsole = QAction('Run C4D w/console')
+		self.actionRunC4DConsole.triggered.connect(lambda: self._runC4D(['g_console=true']))
 		self.actionOpenFolder = QAction('Open folder')
-		self.actionOpenFolder.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.GetPathFolderRoot())))
+		self.actionOpenFolder.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderRoot()))
 		self.actionOpenFolderPrefs = None
 		if self.c4d.GetPathFolderPrefs():
 			self.actionOpenFolderPrefs = QAction('Open folder prefs')
-			self.actionOpenFolderPrefs.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.c4d.GetPathFolderPrefs())))
+			self.actionOpenFolderPrefs.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderPrefs()))
 
 	def _contextMenuRequested(self):
 		menu = QtWidgets.QMenu()

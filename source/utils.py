@@ -1,4 +1,6 @@
 import os, re
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
 
 def GetPrefsFolderPath():
 	path: str = os.path.join(GetAppDataPath(), 'c4d-version-manager')
@@ -7,6 +9,9 @@ def GetPrefsFolderPath():
 
 def GetAppDataPath():
 	return os.getenv('APPDATA')
+
+def OpenFolderInDefaultExplorer(path):
+	QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
 # Tries to cast given value to type, falls back to default if error
 def SafeCast(val, to_type, default=None):
