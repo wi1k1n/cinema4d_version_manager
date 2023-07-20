@@ -48,7 +48,7 @@ class TagsWindow(QDockWidget):
 		layout = FlowLayout(widget)
 		self.words = []
 		for tag in self.tags:
-			label = BubbleWidget(tag.name)
+			label = DraggableBubbleWidget(tag.name)
 			label.setFont(QtGui.QFont('SblHebrew', 18))
 			label.setFixedWidth(label.sizeHint().width())
 			layout.addWidget(label)

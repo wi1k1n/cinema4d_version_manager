@@ -1,5 +1,7 @@
 # FlowLayout implementation is stolen from: https://stackoverflow.com/a/41643802/5765191
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QMimeData
+from PyQt5.QtGui import QDrag, QPixmap
 from PyQt5.QtWidgets import (
 	QLabel,
 )
@@ -184,16 +186,29 @@ class FlowLayout(QtWidgets.QLayout):
 
 # https://stackoverflow.com/a/18069897
 class BubbleWidget(QLabel):
-	def __init__(self, text):
+	def __init__(self, text, rounding: int = 20, margin: int = 7):
 		super(BubbleWidget, self).__init__(text)
-		self.setContentsMargins(5, 5, 5, 5)
+		self.rounding = rounding
+		self.setContentsMargins(margin, margin, margin, margin)
 
 	def paintEvent(self, e):
 		p = QtGui.QPainter(self)
 		p.setRenderHint(QtGui.QPainter.Antialiasing, True)
-		p.drawRoundedRect(0, 0, self.width() - 1, self.height() - 1, 5, 5)
+		p.drawRoundedRect(0, 0, self.width() - 1, self.height() - 1, self.rounding, self.rounding)
 		super(BubbleWidget,self).paintEvent(e)
 
 class DraggableBubbleWidget(BubbleWidget):
 	def __init__(self, text):
 		super().__init__(text)
+
+	def mouseMoveEvent(self, e):
+		if e.buttons() == Qt.LeftButton:
+			drag = QDrag(self)
+			mime = QMimeData()
+			drag.setMimeData(mime)
+			
+			pixmap = QPixmap(self.size())
+			self.render(pixmap)
+			drag.setPixmap(pixmap)
+	
+			drag.exec_(Qt.MoveAction)

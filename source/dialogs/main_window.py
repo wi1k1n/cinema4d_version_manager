@@ -38,6 +38,7 @@ class C4DTile(QFrame):
 		self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
 		self.setLineWidth(1)
 		self.setFixedSize(100, 100)
+		self.setAcceptDrops(True)
 
 		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
 		c4dIconName: str = 'C4D ' + self.c4d.GetVersionMajor() + '.png'
@@ -120,6 +121,17 @@ class C4DTile(QFrame):
 			menu.addAction(self.actionOpenFolderPrefs)
 
 		menu.exec_(QtGui.QCursor.pos())
+
+	def dragEnterEvent(self, e):
+		e.accept()
+
+	def dropEvent(self, e):
+		pos = e.pos()
+		widget = e.source()
+
+		print(pos, widget)
+
+		e.accept()
 
 class C4DTileGroup:
 	def __init__(self, indices: list[int] = list(), name: str = '') -> None:
