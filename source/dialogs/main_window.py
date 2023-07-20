@@ -119,29 +119,56 @@ class C4DTile(QFrame):
 
 		menu.exec_(QtGui.QCursor.pos())
 
+class C4DTileGroup:
+	def __init__(self, indices: list[int] = list(), name: str = '') -> None:
+		self.indices = indices
+		self.name = name
 
 class C4DTilesWidget(QScrollArea):
 	def __init__(self):
 		super().__init__()
 
 		self.c4dEntries: list[C4DInfo] = list()
-		self.tiles = list()
 
 		self.setWidgetResizable(True)
-		self.setWidget(QWidget(self))
-		self.widget().setMinimumWidth(100)
 
-		self.tilesLayout = FlowLayout(self.widget())
 		self.updateTiles([])
 	
-	def updateTiles(self, c4ds: list[C4DInfo], grouping: list[int] = []):
-		if len(grouping): print('WARNING: grouping is not implemented yet!')
+	def updateTiles(self, c4ds: list[C4DInfo], grouping: list[C4DTileGroup] | None = None):
 		self.c4dEntries = c4ds
-		self.tiles = [C4DTile(e) for e in self.c4dEntries]
-		for i in reversed(range(self.tilesLayout.count())):
-			self.tilesLayout.itemAt(i).widget().setParent(None)
-		for w in self.tiles:
-			self.tilesLayout.addWidget(w)
+
+		c4dGroups: list[C4DTileGroup] = [C4DTileGroup()]
+		if grouping is not None:
+			c4dGroups = grouping
+		if not len(c4dGroups):
+			c4dGroups = [C4DTileGroup()]
+
+		if self.widget(): self.widget().deleteLater()
+
+		groupsLayout: QVBoxLayout = QVBoxLayout()
+		centralWidget: QWidget = QWidget(self)
+		centralWidget.setLayout(groupsLayout)
+		centralWidget.setMinimumWidth(100)
+		self.setWidget(centralWidget)
+
+		# Populate
+		for grp in c4dGroups:
+			flowLayout: FlowLayout = FlowLayout()
+			indices = grp.indices
+			if not len(indices): indices = [i for i in range(len(self.c4dEntries))]
+			for idx in indices:
+				flowLayout.addWidget(C4DTile(self.c4dEntries[idx]))
+
+			createGroup: bool = len(grp.name)
+			curWidget: QWidget
+			if createGroup:
+				curWidget = QGroupBox(grp.name)
+			else:
+				curWidget = QWidget()
+			curWidget.setLayout(flowLayout)
+			groupsLayout.addWidget(curWidget)
+		
+		groupsLayout.addStretch()
 
 class MainWindow(QMainWindow):
 	"""Main Window."""
@@ -270,7 +297,10 @@ class MainWindow(QMainWindow):
 			if c4dsDict is None:
 				continue
 			c4dEntries.update([v for v in c4dsDict.values()])
-		self.c4dTabTiles.updateTiles(list(c4dEntries))
+		self.c4dTabTiles.updateTiles(list(c4dEntries), [
+				C4DTileGroup([0, 1, 2, 3, 4, 5], 'Large'),
+				C4DTileGroup([3, 4, 5])
+			])
 
 	def closeEvent(self, event):
 		for v in self.dialogs.values():
