@@ -35,11 +35,12 @@ class PreferencesWindow(QMainWindow):
 			'General': self._createPrefGeneral(),
 			'Search paths': self._createPrefPaths(),
 			'Appearance': self._createPrefAppearance(),
+			'Customization': self._createCustomization(),
 		}
 
 		self.setWindowTitle("Preferences")
 		self.setWindowFlags(self.windowFlags() & Qt.WindowCloseButtonHint)
-		self.resize(400, 400)
+		self.resize(500, 400)
 
 		# Stack of widgets containing preferences per category
 		self.contentStack = QStackedWidget()
@@ -50,38 +51,33 @@ class PreferencesWindow(QMainWindow):
 		
 		# List with preferences categories
 		self.categoriesWidget = QListWidget()
-		self.categoriesWidget.setMinimumWidth(150)
+		# self.categoriesWidget.setMinimumWidth(150)
 		self.categoriesWidget.setMinimumHeight(50)
 		for k in self.categories.keys():
 			self.categoriesWidget.addItem(k)
-		self.categoriesWidget.setFixedWidth(self.categoriesWidget.sizeHintForColumn(0) + 2 * self.categoriesWidget.frameWidth() + 10)
+		# self.categoriesWidget.setFixedWidth(self.categoriesWidget.sizeHintForColumn(0) + 2 * self.categoriesWidget.frameWidth() + 10)
 		self.categoriesWidget.currentItemChanged.connect(self._prefCategoryChanged)
 		self.categoriesWidget.setCurrentRow(0)
 
 		# Preferences buttons
-		self.openPreferencesFolderButton: QPushButton = QPushButton('Open preferences folder')
+		self.openPreferencesFolderButton: QPushButton = QPushButton('Open prefs folder')
 		self.openPreferencesFolderButton.clicked.connect(lambda: OpenFolderInDefaultExplorer(utils.GetPrefsFolderPath()))
 		self.savePreferencesButton: QPushButton = QPushButton('Save preferences')
 		self.savePreferencesButton.clicked.connect(self.SavePreferences)
-		# Save preferences layout
-		self.savePreferencesLayout: QHBoxLayout = QHBoxLayout()
-		self.savePreferencesLayout.addWidget(self.openPreferencesFolderButton)
-		self.savePreferencesLayout.addStretch()
-		self.savePreferencesLayout.addWidget(self.savePreferencesButton)
-		savePreferencesWidget: QWidget = QWidget()
-		savePreferencesWidget.setLayout(self.savePreferencesLayout)
 
 		# Intermediate layout to separate preferences entries widget from save-prefs button
 		self.contentLayout: QVBoxLayout = QVBoxLayout()
-		self.contentLayout.addWidget(self.contentStack)
-		self.contentLayout.addWidget(savePreferencesWidget)
+		self.contentLayout.addWidget(self.categoriesWidget)
+		self.contentLayout.addWidget(self.openPreferencesFolderButton)
+		self.contentLayout.addWidget(self.savePreferencesButton)
 		contentWidget: QWidget = QWidget()
 		contentWidget.setLayout(self.contentLayout)
+		contentWidget.setFixedWidth(130)
 
 		# Main layout of prefs window
 		self.prefsLayout: QHBoxLayout = QHBoxLayout()
-		self.prefsLayout.addWidget(self.categoriesWidget)
 		self.prefsLayout.addWidget(contentWidget)
+		self.prefsLayout.addWidget(self.contentStack)
 
 		centralWidget = QWidget()
 		centralWidget.setLayout(self.prefsLayout)
@@ -155,6 +151,18 @@ class PreferencesWindow(QMainWindow):
 	def _createPrefAppearance(self):
 		prefEntriesLayout = QVBoxLayout()
 		prefEntriesLayout.addWidget(QLabel("Appearance"))
+		prefEntriesLayout.addWidget(QLabel("TODO: Adjust visual appearance properties"))
+		prefEntriesLayout.addStretch()
+
+		prefEntriesWidget = QWidget()
+		prefEntriesWidget.setLayout(prefEntriesLayout)
+
+		return prefEntriesWidget
+
+	def _createCustomization(self):
+		prefEntriesLayout = QVBoxLayout()
+		prefEntriesLayout.addWidget(QLabel("Customization"))
+		prefEntriesLayout.addWidget(QLabel("TODO: Customization preferences, e.g. context menu entries with different set of g_ arguments"))
 		prefEntriesLayout.addStretch()
 
 		prefEntriesWidget = QWidget()
