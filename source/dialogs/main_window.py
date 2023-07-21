@@ -3,7 +3,7 @@ from subprocess import Popen, PIPE
 from PyQt5 import QtCore, QtGui
 
 from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent
 from PyQt5.QtWidgets import (
 	QApplication,
 	QLabel,
@@ -305,13 +305,13 @@ class MainWindow(QMainWindow):
 		
 		fileMenu = menuBar.addMenu('&File')
 		# self.openRecentMenu = fileMenu.addMenu("Open Recent")
-		fileMenu.addAction(self.actionRescan)
-		fileMenu.addSeparator()
 		fileMenu.addAction(self.actionPrefs)
 		fileMenu.addSeparator()
 		fileMenu.addAction(self.actionExit)
 		
 		editMenu = menuBar.addMenu("&Edit")
+		editMenu.addAction(self.actionRescan)
+		editMenu.addSeparator()
 		editMenu.addAction(self.actionTags)
 		
 		viewMenu = menuBar.addMenu("&View")
@@ -393,12 +393,14 @@ class MainWindow(QMainWindow):
 			if c4dsDict is None:
 				continue
 			offs: int = len(c4dEntries)
-			c4dGroups.append(C4DTileGroup([i + offs for i in range(len(c4dsDict))], path))
+			# c4dGroups.append(C4DTileGroup([i + offs for i in range(len(c4dsDict))], path))
 			c4dEntries += [v for v in c4dsDict.values()]
 		self.c4dTabTiles.updateTiles(c4dEntries, c4dGroups)
 
-	def closeEvent(self, event):
+	def closeEvent(self, evt: QCloseEvent):
+		self.hide()
+		return evt.ignore()
 		for v in self.dialogs.values():
 			if v is not None:
 				v.close()
-		event.accept()
+		evt.accept()

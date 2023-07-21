@@ -1,7 +1,8 @@
-import random
-import sys
+import sys, random, os
+from functools import partial
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 
 import res.qrc_resources
 from dialogs.main_window import MainWindow
@@ -9,12 +10,36 @@ from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 from gui_utils import *
 
+# TODO: organize this without duplicating code!
+RES_FOLDER = os.path.join(os.getcwd(), 'res')
+IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
+
+
 # https://realpython.com/python-menus-toolbars/#building-context-or-pop-up-menus-in-pyqt
 if __name__ == "__main__":
-	app = QApplication(sys.argv)
+	app: QApplication = QApplication(sys.argv)
 
-	win = MainWindow()
+	icon: QIcon = QIcon(os.path.join(IMAGES_FOLDER, 'icon.png'))
+	app.setWindowIcon(icon)
+
+	win: MainWindow = MainWindow()
 	win.show()
+
+	actionExit: QAction = QAction('Exit')
+	actionExit.triggered.connect(sys.exit)
+	trayMenu: QMenu = QMenu()
+	trayMenu.addAction(actionExit)
+
+	tray: QSystemTrayIcon = QSystemTrayIcon()
+	tray.setIcon(icon)
+	tray.setVisible(True)
+	tray.setContextMenu(trayMenu)
+
+	def trayActivated(reason):
+		if reason != QSystemTrayIcon.ActivationReason.Context and win.isHidden():
+			win.show()
+			win.activateWindow()
+	tray.activated.connect(trayActivated)
 	
 	# # https://stackoverflow.com/a/52617714
 	# w = QtWidgets.QMainWindow()

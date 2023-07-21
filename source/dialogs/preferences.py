@@ -14,7 +14,9 @@ from PyQt5.QtWidgets import (
 	QStackedWidget,
 	QFileDialog,
 	QLayout,
-	QAbstractItemView
+	QAbstractItemView,
+	QFormLayout,
+	QCheckBox
 )
 
 from version import *
@@ -33,8 +35,8 @@ class PreferencesWindow(QMainWindow):
 
 		self.categories = {
 			'General': self._createPrefGeneral(),
-			'Search paths': self._createPrefPaths(),
 			'Appearance': self._createPrefAppearance(),
+			'Search paths': self._createPrefPaths(),
 			'Customization': self._createCustomization(),
 		}
 
@@ -137,14 +139,14 @@ class PreferencesWindow(QMainWindow):
 		self.contentStack.setCurrentIndex(self.categoriesWidget.currentRow())
 
 	def _createPrefGeneral(self):
-		prefEntriesLayout = QVBoxLayout()
-		prefEntriesLayout.addWidget(QLabel("Hello, World"))
-		prefEntriesLayout.addWidget(QLabel("Hello, PyQt!"))
-		prefEntriesLayout.addWidget(QPushButton("Button"))
-		prefEntriesLayout.addStretch()
+		cbHideOnClose: QCheckBox = QCheckBox('&Hide on close', self)
+
+		layout: QFormLayout = QFormLayout()
+		layout.addWidget(cbHideOnClose)
+		# layout.addStretch()
 
 		prefEntriesWidget = QWidget()
-		prefEntriesWidget.setLayout(prefEntriesLayout)
+		prefEntriesWidget.setLayout(layout)
 
 		return prefEntriesWidget
 
