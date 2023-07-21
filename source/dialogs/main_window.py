@@ -1,8 +1,9 @@
-import sys, os, datetime as dt
+import sys, os, typing, datetime as dt
 from subprocess import Popen, PIPE
+from PyQt5 import QtCore, QtGui
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent
+from PyQt5.QtCore import Qt, QEvent, pyqtSignal
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent
 from PyQt5.QtWidgets import (
 	QApplication,
 	QLabel,
@@ -17,6 +18,7 @@ from PyQt5.QtWidgets import (
 	QScrollArea,
 	QGroupBox,
 	QTreeWidget, QTreeWidgetItem,
+	QStatusBar
 )
 
 # import qrc_resources
@@ -31,14 +33,16 @@ IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
 C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
 
 class C4DTile(QFrame):
-	def __init__(self, c4d: C4DInfo):
-		super().__init__()
+	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
+		super().__init__(parent)
+
 		self.c4d: C4DInfo = c4d
 
 		self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
 		self.setLineWidth(1)
 		self.setFixedSize(100, 100)
 		self.setAcceptDrops(True)
+		# self.setMouseTracking(True)
 
 		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
 		c4dIconName: str = 'C4D ' + self.c4d.GetVersionMajor() + '.png'
@@ -79,17 +83,21 @@ class C4DTile(QFrame):
 		self.customContextMenuRequested.connect(self._contextMenuRequested)
 	
 	def _mouseClicked(self, evt: QMouseEvent):
-		if evt.button() == Qt.LeftButton:
-			if evt.modifiers() & Qt.KeyboardModifier.ControlModifier:
-				if evt.modifiers() & Qt.KeyboardModifier.ShiftModifier: 	# Ctrl+Shift+Click: open prefs folder
-					self.actionOpenFolderPrefs.trigger()
+		action: QAction | None = self._getActionForMouseClick(evt.button(), evt.modifiers())
+		if action: action.trigger()
+
+	def _getActionForMouseClick(self, button: Qt.MouseButton, modifiers: Qt.KeyboardModifiers):
+		if button == Qt.LeftButton:
+			if modifiers & Qt.KeyboardModifier.ControlModifier:
+				if modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Ctrl+Shift+Click: open prefs folder
+					return self.actionOpenFolderPrefs
 				else: 														# Ctrl+Click: run with console
-					self.actionRunC4DConsole.trigger()
-			elif evt.modifiers() & Qt.KeyboardModifier.ShiftModifier: 		# Shift+Click: open c4d folder
-				self.actionOpenFolder.trigger()
+					return self.actionRunC4DConsole
+			elif modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Shift+Click: open c4d folder
+				return self.actionOpenFolder
 			else: 															# Click: run c4d
-				self.actionRunC4D.trigger()
-		pass
+				return self.actionRunC4D
+		return None
 
 	def _runC4D(self, args: list[str] = []):
 		p = Popen([self.c4d.GetPathExecutable()] + args)
@@ -101,10 +109,13 @@ class C4DTile(QFrame):
 	def _addActions(self):
 		self.actionRunC4D = QAction('Run C4D')
 		self.actionRunC4D.triggered.connect(lambda: self._runC4D())
+
 		self.actionRunC4DConsole = QAction('Run C4D w/console')
 		self.actionRunC4DConsole.triggered.connect(lambda: self._runC4D(['g_console=true']))
+		
 		self.actionOpenFolder = QAction('Open folder')
 		self.actionOpenFolder.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderRoot()))
+		
 		self.actionOpenFolderPrefs = None
 		if self.c4d.GetPathFolderPrefs():
 			self.actionOpenFolderPrefs = QAction('Open folder prefs')
@@ -122,15 +133,36 @@ class C4DTile(QFrame):
 
 		menu.exec_(QtGui.QCursor.pos())
 
-	def dragEnterEvent(self, e):
+	# def _emitStatusBarSignal(self, modifiers: Qt.KeyboardModifiers | None = None):
+	# 	# if not self.picLabel.underMouse(): return
+
+	# 	action: QAction | None = self._getActionForMouseClick(Qt.MouseButton.LeftButton, modifiers if modifiers else Qt.KeyboardModifiers())
+	# 	if action is None: return
+		
+	# 	# self.statusBarTextRequested.emit(action.statusTip())
+	# 	self.statusBar.showMessage(action.statusTip(), 0)
+
+	# def mouseMoveEvent(self, evt: QMouseEvent) -> None:
+	# 	self._emitStatusBarSignal(modifiers=evt.modifiers())
+	# 	return super().mouseMoveEvent(evt)
+	
+	# def keyPressEvent(self, evt: QKeyEvent) -> None:
+	# 	self._emitStatusBarSignal(modifiers=evt.modifiers())
+	# 	return super().keyPressEvent(evt)
+
+	# def event(self, evt: QEvent) -> bool:
+	# 	if evt.type() == evt.Type.StatusTip:
+	# 		print(evt.tip())
+	# 		return True
+	# 	return super().event(evt)
+
+	def dragEnterEvent(self, e: QDragEnterEvent):
 		e.accept()
 
-	def dropEvent(self, e):
+	def dropEvent(self, e: QDropEvent):
 		pos = e.pos()
 		widget = e.source()
-
 		print(pos, widget)
-
 		e.accept()
 
 class C4DTileGroup:
@@ -139,8 +171,8 @@ class C4DTileGroup:
 		self.name = name
 
 class C4DTilesWidget(QScrollArea):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, parent: QWidget | None = None) -> None:
+		super().__init__(parent)
 
 		self.c4dEntries: list[C4DInfo] = list()
 
@@ -171,7 +203,8 @@ class C4DTilesWidget(QScrollArea):
 			indices = grp.indices
 			if not len(indices): indices = [i for i in range(len(self.c4dEntries))]
 			for idx in indices:
-				flowLayout.addWidget(C4DTile(self.c4dEntries[idx]))
+				tileWidget: C4DTile = C4DTile(self.c4dEntries[idx], self)
+				flowLayout.addWidget(tileWidget)
 
 			createGroup: bool = len(grp.name)
 			curWidget: QWidget
@@ -206,9 +239,9 @@ class MainWindow(QMainWindow):
 			'about': AboutWindow()
 		}
 
-		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget()
-		self.c4dTabTableWidget: QTreeWidget = QTreeWidget()
-		
+		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget(self)
+
+		self.c4dTabTableWidget: QTreeWidget = QTreeWidget(self)
 		self.c4dTabTableWidget.setColumnCount(4)
 		self.c4dTabTableWidget.setHeaderLabels(['Fav', 'Path', 'Version', 'Date'])
 		for i in range(5):
@@ -291,8 +324,7 @@ class MainWindow(QMainWindow):
 		pass
 
 	def _createStatusBar(self):
-		self.statusbar = self.statusBar()
-		self.statusbar.showMessage("Scan", 500)
+		pass
 	
 	def _connectActions(self):
 		self.actionPrefs.triggered.connect(self.openPreferences)
