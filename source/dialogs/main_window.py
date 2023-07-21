@@ -2,7 +2,7 @@ import sys, os, typing, datetime as dt
 from subprocess import Popen, PIPE
 from PyQt5 import QtCore, QtGui
 
-from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal
+from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent
 from PyQt5.QtWidgets import (
 	QApplication,
@@ -37,6 +37,7 @@ IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
 C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
 
 class C4DTile(QFrame):
+	# https://forum.qt.io/topic/90403/show-tooltip-immediatly/6
 	class C4DTileProxyStyle(QProxyStyle):
 		def styleHint(self, hint: QStyle.StyleHint, option: QStyleOption | None = None, widget: QWidget | None = None, returnData: QStyleHintReturn | None = None) -> int:
 			if hint == QStyle.SH_ToolTip_WakeUpDelay:
@@ -111,8 +112,13 @@ class C4DTile(QFrame):
 		return None
 
 	def _runC4D(self, args: list[str] = []):
-		p = Popen([self.c4d.GetPathExecutable()] + args)
-		print(p.pid)
+		# https://forum.qt.io/topic/129701/qprocess-startdetached-but-the-child-process-closes-when-the-parent-exits/6
+		self.p: QProcess = QProcess()
+		print(self.p.startDetached(self.c4d.GetPathExecutable(), args))
+		self.p.setStandardErrorFile(QProcess.nullDevice())
+		self.p.setStandardInputFile(QProcess.nullDevice())
+		self.p.setStandardOutputFile(QProcess.nullDevice())
+		self.p.setProcessState(QProcess.NotRunning)
 
 	def _createTooltipMenuString(self):
 		return f'{self.c4d.GetPathFolderRoot()}'
