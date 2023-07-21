@@ -1,4 +1,3 @@
-# FlowLayout implementation is stolen from: https://stackoverflow.com/a/41643802/5765191
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QMimeData
 from PyQt5.QtGui import QDrag, QPixmap, QMouseEvent
@@ -6,6 +5,7 @@ from PyQt5.QtWidgets import (
 	QLabel,
 )
 
+# FlowLayout implementation is stolen from: https://stackoverflow.com/a/41643802/5765191
 class FlowLayout(QtWidgets.QLayout):
 	def __init__(self, parent=None, margin=-1, hspacing=-1, vspacing=-1):
 		super(FlowLayout, self).__init__(parent)

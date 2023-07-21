@@ -2,7 +2,7 @@ import os, json, typing
 from functools import partial
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import Qt, QUrl, QRect, QPoint, QTimer, QSize
+from PyQt5.QtCore import Qt, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal
 from PyQt5.QtGui import QFont, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen
 from PyQt5.QtWidgets import (
 	QLabel,
@@ -23,7 +23,9 @@ from PyQt5.QtWidgets import (
 	QFormLayout,
 	QLineEdit,
 	QDialogButtonBox,
-	QSizePolicy
+	QSizePolicy,
+	QAction,
+	QLayoutItem
 )
 
 from version import *
@@ -82,12 +84,38 @@ class BubbleWidget(DraggableQLabel):
 		super(DraggableQLabel, self).paintEvent(evt)
 
 class TagWidget(BubbleWidget):
+	tagEditRequestedSignal = pyqtSignal()
+	tagRemoveRequestedSignal = pyqtSignal()
+	tagMoveRequestedSignal = pyqtSignal(int)
 	def __init__(self, tag: C4DTag):
 		super().__init__(tag.name, tag.color)
 		
 		self.setFont(QtGui.QFont('SblHebrew', 18))
 		self.SetTag(tag)
 		# self.mousePressEvent = self._onMousePress
+		
+		# Actions
+		self.actionEdit: QAction = QAction('Edit', self)
+		self.actionEdit.triggered.connect(self._onEditAction)
+		self.actionMoveBack: QAction = QAction('Move back', self)
+		self.actionMoveBack.triggered.connect(self._onMoveBackAction)
+		self.actionMoveForward: QAction = QAction('Move forward', self)
+		self.actionMoveForward.triggered.connect(self._onMoveForwardAction)
+		self.actionRemove: QAction = QAction('Remove', self)
+		self.actionRemove.triggered.connect(self._onRemoveAction)
+		
+		def createActionSeparator(self):
+			separator: QAction = QAction(self)
+			separator.setSeparator(True)
+			return separator
+		self.addAction(self.actionEdit)
+		self.addAction(createActionSeparator(self))
+		self.addAction(self.actionMoveBack)
+		self.addAction(self.actionMoveForward)
+		self.addAction(createActionSeparator(self))
+		self.addAction(self.actionRemove)
+
+		self.setContextMenuPolicy(Qt.ActionsContextMenu)
 	
 	def GetTag(self) -> C4DTag:
 		return self.tag
@@ -96,9 +124,19 @@ class TagWidget(BubbleWidget):
 		self.tag: C4DTag = tag
 		self.SetText(tag.name)
 		self.SetColor(tag.color)
+
+	def _onMoveBackAction(self):
+		self.tagMoveRequestedSignal.emit(-1)
+	def _onMoveForwardAction(self):
+		self.tagMoveRequestedSignal.emit(1)
+	def _onEditAction(self):
+		self.tagEditRequestedSignal.emit()
+	def _onRemoveAction(self):
+		self.tagRemoveRequestedSignal.emit()
 	
 	# def _onMousePress(self, evt: QMouseEvent):
 	# 	print(self)
+
 class ColorPickerWidget(QWidget):
 	def __init__(self, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
@@ -127,7 +165,6 @@ class ColorPickerWidget(QWidget):
 		return super().paintEvent(evt)
 		
 class ManageTagDialog(QDialog):
-
 	def __init__(self, parent: QWidget | None = None, tag: C4DTag | None = None) -> None:
 		super().__init__(parent)
 		
@@ -210,34 +247,68 @@ class TagsWindow(QDockWidget):
 		mainArea.setWidget(widget)
 		self.setWidget(mainArea)
 
-		self.mouseDoubleClickEvent = self._openManageTagWindowNew
+		self.mouseDoubleClickEvent = lambda evt: self._openManageTagWindowNew()
 		self.manageTagWindow.accepted.connect(self._onManageTagAccepted)
+
+		# Actions
+		self.actionCreateNewTag = QAction('Create new', self)
+		self.actionCreateNewTag.triggered.connect(self._openManageTagWindowNew)
+		
+		self.addAction(self.actionCreateNewTag)
+		self.setContextMenuPolicy(Qt.ActionsContextMenu)
 	
 	def _addTag(self, tag: C4DTag):
 		tagWidget: TagWidget = TagWidget(tag)
-		tagWidget.mouseDoubleClickEvent = partial(self._openManageTagWindowExisting, tagWidget)
+		tagWidget.mouseDoubleClickEvent = partial(lambda tw, evt: self._openManageTagWindowExisting(tw), tagWidget)
+		tagWidget.tagEditRequestedSignal.connect(partial(self._openManageTagWindowExisting, tagWidget))
+		tagWidget.tagRemoveRequestedSignal.connect(partial(self._removeTag, tagWidget.GetTag()))
+		tagWidget.tagMoveRequestedSignal.connect(partial(self._moveTag, tagWidget.GetTag()))
 		self.tagsFlowLayout.addWidget(tagWidget)
 		self.tagWidgets.append(tagWidget)
+	
+	def _findTagIndex(self, tag: C4DTag):
+		for idx, tagWidget in enumerate(self.tagWidgets):
+			if tagWidget.GetTag() == tag: # TODO: proper equality test!
+				return idx
+		return -1
+		
+	def _removeTag(self, tag: C4DTag): # TODO: sometimes gives error, likely due to poor C4DTag equality test
+		tagIdx: int = self._findTagIndex(tag)
+		if tagIdx < 0: return print('Doesn\'t exist!')
+		print('remove:', tag.name)
+		self.tagWidgets[tagIdx].deleteLater()
+		del self.tagWidgets[tagIdx]
+		
+	def _moveTag(self, tag: C4DTag, dir: int):
+		tagIdx: int = self._findTagIndex(tag)
+		if tagIdx < 0: return print('Doesn\'t exist!')
+		if tagIdx == 0 and dir < 0 or tagIdx == len(self.tagWidgets) - 1 and dir > 0:
+			return
+		print('move tag', tag.name, 'forward' if dir > 0 else 'back')
+		items: list[QLayoutItem] = [self.tagsFlowLayout.takeAt(0) for i in range(self.tagsFlowLayout.count())]
+		items[tagIdx], items[tagIdx + dir] = items[tagIdx + dir], items[tagIdx]
+		for item in items:
+			self.tagsFlowLayout.addItem(item)
+		self.tagWidgets[tagIdx], self.tagWidgets[tagIdx + dir] = self.tagWidgets[tagIdx + dir], self.tagWidgets[tagIdx]
+		self.tagsFlowLayout.update()
 
-	def _onManageTagAccepted(self):
+	def _onManageTagAccepted(self):			
 		tag: C4DTag = self.manageTagWindow.GetTag()
 		tagNew: C4DTag = self.manageTagWindow.GetTagEdited()
-		existingTags: list[C4DTag] = [t.GetTag() for t in self.tagWidgets]
-		try:
-			findIdx: int = existingTags.index(tag)
-			self.tagWidgets[findIdx].SetTag(tagNew)
-		except:
-			print('accepted: was new')
-			if tagNew in existingTags: # TODO: proper check for existence
-				print('Already exists!!!')
-				return
-			self._addTag(tagNew)
+		tagIdx: int = self._findTagIndex(tag)
+		if tagIdx >= 0: # found previous tag
+			tagWidget: TagWidget = self.layout().itemAt(tagIdx).widget()
+			tagWidget.SetTag(tagNew)
+			return
+		tagNewIdx: int = self._findTagIndex(tagNew)
+		if tagNewIdx >= 0: return print('Already exists!!!')
+		self._addTag(tagNew)
 	
-	def _openManageTagWindowExisting(self, tagWidget: TagWidget, evt: QMouseEvent):
+	def _openManageTagWindowExisting(self, tagWidget: TagWidget):
 		self.manageTagWindow.SetTag(tagWidget.GetTag())
 		self._restoreManageTagWindow()
-
-	def _openManageTagWindowNew(self, evt: QMouseEvent):
+	
+	def _openManageTagWindowNew(self):
 		if self.manageTagWindow.isHidden() or self.manageTagWindow.IsEditing():
 			self.manageTagWindow.SetTag()
 		self._restoreManageTagWindow()
