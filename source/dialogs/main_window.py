@@ -2,13 +2,16 @@ import sys, os, typing, datetime as dt
 from subprocess import Popen, PIPE
 from PyQt5 import QtCore, QtGui
 
-from PyQt5.QtCore import Qt, QEvent, pyqtSignal
+from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent
 from PyQt5.QtWidgets import (
 	QApplication,
 	QLabel,
 	QMainWindow,
 	QMenu, QMenuBar,
+	QStyle,
+	QStyleHintReturn,
+	QStyleOption,
 	QToolBar,
 	QAction,
 	QWidget,
@@ -18,7 +21,8 @@ from PyQt5.QtWidgets import (
 	QScrollArea,
 	QGroupBox,
 	QTreeWidget, QTreeWidgetItem,
-	QStatusBar
+	QStatusBar,
+	QProxyStyle
 )
 
 # import qrc_resources
@@ -33,6 +37,12 @@ IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
 C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
 
 class C4DTile(QFrame):
+	class C4DTileProxyStyle(QProxyStyle):
+		def styleHint(self, hint: QStyle.StyleHint, option: QStyleOption | None = None, widget: QWidget | None = None, returnData: QStyleHintReturn | None = None) -> int:
+			if hint == QStyle.SH_ToolTip_WakeUpDelay:
+				return 0
+			return super().styleHint(hint, option, widget, returnData)
+
 	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
 
@@ -43,6 +53,7 @@ class C4DTile(QFrame):
 		self.setFixedSize(100, 100)
 		self.setAcceptDrops(True)
 		# self.setMouseTracking(True)
+		self.setStyle(C4DTile.C4DTileProxyStyle())
 
 		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
 		c4dIconName: str = 'C4D ' + self.c4d.GetVersionMajor() + '.png'
@@ -363,21 +374,22 @@ class MainWindow(QMainWindow):
 	#         actions.append(action)
 	#     # Step 3. Add the actions to the menu
 	#     self.openRecentMenu.addActions(actions)
+
 	def rescan(self):
 		if 'preferences' not in self.dialogs:
 			return print('ERROR: Preferences dialog wasn\'t found!')
 		dlg: PreferencesWindow = self.dialogs['preferences']
 		searchPaths: list[str] = dlg.GetSearchPaths()
-		c4dEntries: set[C4DInfo] = set()
+		c4dEntries: list[C4DInfo] = list()
+		c4dGroups: list[C4DTileGroup] = list()
 		for path in searchPaths:
 			c4dsDict: dict[str, C4DInfo] | None = FindCinemaPackagesInFolder(path)
 			if c4dsDict is None:
 				continue
-			c4dEntries.update([v for v in c4dsDict.values()])
-		self.c4dTabTiles.updateTiles(list(c4dEntries), [
-				C4DTileGroup([0, 1, 2, 3, 4, 5], 'Large'),
-				C4DTileGroup([3, 4, 5])
-			])
+			offs: int = len(c4dEntries)
+			c4dGroups.append(C4DTileGroup([i + offs for i in range(len(c4dsDict))], path))
+			c4dEntries += [v for v in c4dsDict.values()]
+		self.c4dTabTiles.updateTiles(c4dEntries, c4dGroups)
 
 	def closeEvent(self, event):
 		for v in self.dialogs.values():
