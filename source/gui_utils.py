@@ -1,8 +1,28 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QMimeData
-from PyQt5.QtGui import QDrag, QPixmap, QMouseEvent
+from PyQt5.QtCore import Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal
+from PyQt5.QtGui import QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen
 from PyQt5.QtWidgets import (
 	QLabel,
+	QMainWindow,
+	QDockWidget,
+	QDialog,
+	QHBoxLayout,
+	QListWidget,
+	QWidget,
+	QVBoxLayout,
+	QPushButton,
+	QListWidgetItem,
+	QStackedWidget,
+	QFileDialog,
+	QLayout,
+	QAbstractItemView,
+	QColorDialog,
+	QFormLayout,
+	QLineEdit,
+	QDialogButtonBox,
+	QSizePolicy,
+	QAction,
+	QLayoutItem
 )
 
 # FlowLayout implementation is stolen from: https://stackoverflow.com/a/41643802/5765191
@@ -199,3 +219,50 @@ class DraggableQLabel(QLabel):
 			drag.setPixmap(pixmap)
 	
 			drag.exec_(Qt.MoveAction)
+
+# https://stackoverflow.com/a/18069897
+class BubbleWidget(DraggableQLabel):
+	def __init__(self, text, bgColor: QColor | None = None, rounding: float = 20, margin: int = 7):
+		super(DraggableQLabel, self).__init__(text)
+		self.rounding: float = rounding
+		self.roundingMargin: int = margin
+		self.bgColor: QColor | None = bgColor
+
+		# self.mouseLeaveTimer: QTimer = QTimer(self, interval=50, timeout=self._mouseLeaveTimerCallback)
+
+		self.setContentsMargins(margin, margin, margin, margin)
+		self.setAlignment(Qt.AlignCenter)
+		self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+		
+		# self.setMouseTracking(True)
+	
+	# def _mouseLeaveTimerCallback(self):
+	# 	self.mouseLeaveTimer.stop()
+	# 	self.update()
+
+	# def mouseMoveEvent(self, e: QMouseEvent):
+	# 	self.mouseLeaveTimer.start()
+	# 	self.update()
+	# 	return super().mouseMoveEvent(e)
+
+	def SetColor(self, bgColor: QColor | None):
+		self.bgColor = bgColor
+		self.update()
+	
+	def SetText(self, txt: str):
+		self.setText(txt)
+		self.setFixedSize(1, 1) # doesn't work without manually shrinking it first
+		self.setFixedSize(self.sizeHint() + QSize(self.roundingMargin, self.roundingMargin) * 2)
+
+	def paintEvent(self, evt: QPaintEvent):
+		p: QPainter = QPainter(self)
+		
+		penWidth: int = 1 # 2 if self.underMouse() else 1
+		p.setPen(QPen(Qt.black, penWidth))
+		if self.bgColor is not None:
+			p.setBrush(self.bgColor)
+		
+		p.setRenderHint(QPainter.Antialiasing, True)
+		p.drawRoundedRect(penWidth, penWidth, self.width() - penWidth * 2, self.height() - penWidth * 2, self.rounding, self.rounding)
+		
+		super(DraggableQLabel, self).paintEvent(evt)

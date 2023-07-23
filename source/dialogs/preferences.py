@@ -18,7 +18,8 @@ from PyQt5.QtWidgets import (
 	QFormLayout,
 	QCheckBox,
 	QSlider,
-	QSizePolicy
+	QSizePolicy,
+	QGroupBox
 )
 
 from version import *
@@ -153,6 +154,13 @@ class PreferencesWindow(QMainWindow):
 		return prefEntriesWidget
 
 	def _createPrefAppearance(self):
+		### Group 'Application'
+		groupApplication: QGroupBox = QGroupBox('Application')
+
+		grpApplicationLayout: QFormLayout = QFormLayout()
+		groupApplication.setLayout(grpApplicationLayout)
+
+		# GUI size slider
 		guiSizeSLider: QSlider = QSlider(Qt.Horizontal)
 		guiSizeSLider.setMinimum(1)
 		guiSizeSLider.setMaximum(3)
@@ -162,14 +170,28 @@ class PreferencesWindow(QMainWindow):
 		guiSizeSLider.setTickInterval(1)
 		# guiSizeSLider.setMaximumWidth(128)
 		guiSizeSLider.setDisabled(True)
+		grpApplicationLayout.addRow(QLabel('GUI size'), guiSizeSLider)
 
-		layout: QFormLayout = QFormLayout()
-		layout.addRow(QLabel('GUI size'), guiSizeSLider)
+		### Group 'Cinema 4D Tiles'
+		groupTiles: QGroupBox = QGroupBox('Cinema 4D')
 
-		prefEntriesWidget = QWidget()
-		prefEntriesWidget.setLayout(layout)
+		grpTilesLayout: QFormLayout = QFormLayout()
+		groupTiles.setLayout(grpTilesLayout)
+		
+		grpTilesLayout.addRow(QCheckBox('Use Ronald\'s icon set'))
+		grpTilesLayout.addRow(QCheckBox('Trim C4D version from folder name'))
+		grpTilesLayout.addRow(QCheckBox('Show timestamp'))
 
-		return prefEntriesWidget
+		##### Main layout
+		mainLayout: QVBoxLayout = QVBoxLayout()
+		mainLayout.addWidget(groupApplication)
+		mainLayout.addWidget(groupTiles)
+		mainLayout.addStretch()
+
+		main = QWidget()
+		main.setLayout(mainLayout)
+
+		return main
 
 	def _createCustomization(self):
 		prefEntriesLayout = QVBoxLayout()

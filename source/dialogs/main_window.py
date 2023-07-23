@@ -2,7 +2,7 @@ import sys, os, typing, datetime as dt
 from subprocess import Popen, PIPE
 from PyQt5 import QtCore, QtGui
 
-from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess
+from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess, QPoint, QRect
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent
 from PyQt5.QtWidgets import (
 	QApplication,
@@ -33,12 +33,41 @@ from dialogs.main_window_tiles import *
 from utils import *
 from gui_utils import *
 
+# TODO: here for now, please remove once not needed!
+class TestMainWindow(QMainWindow):
+	def __init__(self, parent: QWidget | None = None) -> None:
+		super(TestMainWindow, self).__init__(parent)
+
+		self.setWindowTitle("Test Main window")
+		self.resize(800, 600)
+
+		layout: QVBoxLayout = QVBoxLayout()
+		layout.addWidget(C4DTile(C4DInfo('', [])))
+		layout.addWidget(C4DTile(C4DInfo('', [])))
+		layout.addWidget(QLabel('hey there'))
+
+		widget: QWidget = QWidget()
+		widget.setLayout(layout)
+
+		self.setCentralWidget(widget)
+		
+
+		self.update()
+
+
+
+
+
+
+
+
+
+
 class MainWindow(QMainWindow):
 	"""Main Window."""
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
 		
-		self.c4dEntries: list[C4DInfo] = list()
 		# self.c4dTags: list[C4DTag] = [
 		# 	C4DTag('Favorite'),
 		# 	C4DTag('Customer'),
@@ -46,7 +75,7 @@ class MainWindow(QMainWindow):
 		# ]
 
 		self.setWindowTitle("C4D Selector")
-		self.resize(800, 600)
+		self.resize(1420, 800)
 		self.setMinimumSize(350, 250)
 		self.showEvent = self._onShowed
 
@@ -213,6 +242,15 @@ class MainWindow(QMainWindow):
 			# c4dGroups.append(C4DTileGroup([i + offs for i in range(len(c4dsDict))], path))
 			c4dEntries += [v for v in c4dsDict.values()]
 		self.c4dTabTiles.updateTiles(c4dEntries, c4dGroups)
+	
+	def GetTags(self) -> list[C4DTag]:
+		if dlgTags := self._getDialog('tags'):
+			return dlgTags._getTags()
+		return list()
+	def GetTag(self, uuid: str) -> C4DTag | None:
+		if dlgTags := self._getDialog('tags'):
+			return dlgTags._getTag(uuid)
+		return None
 
 	def _onShowed(self, evt):
 		print('on show:', evt)

@@ -5,14 +5,22 @@ from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 
 import res.qrc_resources
-from dialogs.main_window import MainWindow
+from dialogs.main_window import MainWindow, TestMainWindow
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 from gui_utils import *
 from utils import *
+	
+# TODO: here for now, please remove once not needed!
+def testApp():
+	app: QApplication = QApplication(sys.argv)
+	win: TestMainWindow = TestMainWindow()
+	win.show()
+	sys.exit(app.exec_())
 
 # https://realpython.com/python-menus-toolbars/#building-context-or-pop-up-menus-in-pyqt
 if __name__ == "__main__":
+	# testApp()
 	app: QApplication = QApplication(sys.argv)
 
 	icon: QIcon = QIcon(os.path.join(IMAGES_FOLDER, 'icon.png'))

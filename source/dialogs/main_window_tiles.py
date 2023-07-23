@@ -2,8 +2,8 @@ import sys, os, typing, datetime as dt
 from subprocess import Popen, PIPE
 from PyQt5 import QtCore, QtGui
 
-from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent
+from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess, QRect, QPoint
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent, QPaintEvent, QPainter, QColor, QBrush, QPen
 from PyQt5.QtWidgets import (
 	QApplication,
 	QLabel,
@@ -37,6 +37,27 @@ class C4DTileGroup:
 		self.indices = indices
 		self.name = name
 
+# TODO: here for now, please remove once not needed!
+class C4DTile2(QWidget):
+	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
+		super().__init__(parent)
+
+		self.setFixedSize(100, 100)
+		self.pixMap: QPixmap = QPixmap(os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
+		
+
+	def paintEvent(self, evt: QPaintEvent) -> None:
+		p: QPainter = QPainter(self)
+
+		p.fillRect(self.rect(), QBrush(Qt.red, Qt.Dense5Pattern))
+
+		p.drawPixmap(QRect(0, 0, 60, 60), self.pixMap)
+
+		p.setFont(QFont('Comic', 18))
+		p.drawText(self.rect(), Qt.AlignLeft | Qt.AlignVCenter, 'Hello world!')
+
+		return super().paintEvent(evt)
+
 class C4DTile(QFrame):
 	# https://forum.qt.io/topic/90403/show-tooltip-immediatly/6
 	class C4DTileProxyStyle(QProxyStyle):
@@ -52,7 +73,7 @@ class C4DTile(QFrame):
 
 		self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
 		self.setLineWidth(1)
-		self.setFixedSize(100, 100)
+		# self.setFixedSize(100, 100)
 		self.setAcceptDrops(True)
 		# self.setMouseTracking(True)
 		self.setStyle(C4DTile.C4DTileProxyStyle())
@@ -71,20 +92,36 @@ class C4DTile(QFrame):
 		versLabel.setFont(QFont('SblHebrew', 12))
 		versLabel.setAlignment(Qt.AlignHCenter)
 
-		tDt: dt.datetime = GetFolderTimestampCreated(self.c4d.GetPathFolderRoot())
-		folderLabel: QLabel = QLabel(self.c4d.GetNameFolderRoot() + '\n' + tDt.strftime('%d/%m/%Y %H:%M'))
-		folderLabel.setWordWrap(True)
-		folderLabel.setFont(QFont('SblHebrew', 6))
+		folderLabel: QLabel = QLabel(self.c4d.GetNameFolderRoot()[:20])
+		folderLabel.setAlignment(Qt.AlignHCenter)
+		# folderLabel.setWordWrap(True)
+		folderLabel.setFont(QFont('SblHebrew', 10))
+
+		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # tagsLayout: FlowLayout = FlowLayout()
+		tagsWidget: QWidget = QWidget()
+		tagsWidget.setLayout(tagsLayout)
+		tagsDict: dict = self.parent().c4dTags
+		if tagsDict and self.c4d.directory in tagsDict:
+			uuids: list[str] = tagsDict[self.c4d.directory]
+			for uuid in uuids:
+				tag: C4DTag = self.parent().GetTag(uuid)
+				print(tag)
+				tagBubbleWidget: BubbleWidget = BubbleWidget(tag.name, tag.color, 5, 3)
+				font = tagBubbleWidget.font()
+				font.setPixelSize(10)
+				tagBubbleWidget.setFont(font)
+				tagsLayout.addWidget(tagBubbleWidget)
+		
 
 		layout: QVBoxLayout = QVBoxLayout()
-		layout.addWidget(folderLabel)
-		layout.addWidget(picLabel)
-		layout.addWidget(versLabel)
-		layout.setAlignment(Qt.AlignCenter)
+		layout.addWidget(versLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(picLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(folderLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(tagsWidget, alignment=Qt.AlignCenter)
 
 		self.setLayout(layout)
 
-		picSize: int = int(min(self.width(), self.height()) * .6)
+		picSize: int = int(min(self.width(), self.height()) * 3.)
 		picLabel.setFixedSize(picSize, picSize)
 
 		self.setToolTip(self._createTooltipMenuString())
@@ -122,7 +159,9 @@ class C4DTile(QFrame):
 		self.p.setProcessState(QProcess.NotRunning)
 
 	def _createTooltipMenuString(self):
-		return f'{self.c4d.GetPathFolderRoot()}'
+		tDt: dt.datetime = GetFolderTimestampCreated(self.c4d.GetPathFolderRoot())
+		return f'{self.c4d.GetPathFolderRoot()}'\
+				f'\nCreated {tDt.strftime("%d/%m/%Y %H:%M")}'
 	
 	def _addActions(self):
 		self.actionRunC4D = QAction('Run C4D')
@@ -185,13 +224,22 @@ class C4DTile(QFrame):
 
 class C4DTilesWidget(QScrollArea):
 	def __init__(self, parent: QWidget | None = None) -> None:
+		self.mainWindow = parent
 		super().__init__(parent)
 
 		self.c4dEntries: list[C4DInfo] = list()
+		self.c4dTags: dict[str, list[str]] = dict() # mapping from c4d_directory to a list of uuids to the tags
 
 		self.setWidgetResizable(True)
-
-		self.updateTiles([])
+	
+	def GetTags(self) -> list[C4DTag]:
+		if dlg := self.mainWindow:
+			return dlg.GetTags()
+		return list()
+	def GetTag(self, uuid: str) -> C4DTag | None:
+		if dlg := self.mainWindow:
+			return dlg.GetTag(uuid)
+		return None
 	
 	def updateTiles(self, c4ds: list[C4DInfo], grouping: list[C4DTileGroup] | None = None):
 		self.c4dEntries = c4ds
@@ -216,7 +264,9 @@ class C4DTilesWidget(QScrollArea):
 			indices = grp.indices
 			if not len(indices): indices = [i for i in range(len(self.c4dEntries))]
 			for idx in indices:
-				tileWidget: C4DTile = C4DTile(self.c4dEntries[idx], self)
+				c4dinfo: C4DInfo = self.c4dEntries[idx]
+				self.c4dTags[c4dinfo.directory] = [t.uuid for t in self.GetTags()]
+				tileWidget: C4DTile = C4DTile(c4dinfo, self)
 				flowLayout.addWidget(tileWidget)
 
 			createGroup: bool = len(grp.name)
@@ -229,3 +279,5 @@ class C4DTilesWidget(QScrollArea):
 			groupsLayout.addWidget(curWidget)
 		
 		groupsLayout.addStretch()
+
+		print(self.GetTags())

@@ -55,53 +55,6 @@ class C4DTag:
 		}
 		return ret
 
-# https://stackoverflow.com/a/18069897
-class BubbleWidget(DraggableQLabel):
-	def __init__(self, text, bgColor: QColor | None = None, rounding: float = 20, margin: int = 7):
-		super(DraggableQLabel, self).__init__(text)
-		self.rounding: float = rounding
-		self.roundingMargin: int = margin
-		self.bgColor: QColor | None = bgColor
-
-		# self.mouseLeaveTimer: QTimer = QTimer(self, interval=50, timeout=self._mouseLeaveTimerCallback)
-
-		self.setContentsMargins(margin, margin, margin, margin)
-		self.setAlignment(Qt.AlignCenter)
-		self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-		
-		# self.setMouseTracking(True)
-	
-	# def _mouseLeaveTimerCallback(self):
-	# 	self.mouseLeaveTimer.stop()
-	# 	self.update()
-
-	# def mouseMoveEvent(self, e: QMouseEvent):
-	# 	self.mouseLeaveTimer.start()
-	# 	self.update()
-	# 	return super().mouseMoveEvent(e)
-
-	def SetColor(self, bgColor: QColor | None):
-		self.bgColor = bgColor
-		self.update()
-	
-	def SetText(self, txt: str):
-		self.setText(txt)
-		self.setFixedSize(1, 1) # doesn't work without manually shrinking it first
-		self.setFixedSize(self.sizeHint() + QSize(self.roundingMargin, self.roundingMargin) * 2)
-
-	def paintEvent(self, evt: QPaintEvent):
-		p: QPainter = QPainter(self)
-		
-		penWidth: int = 1 # 2 if self.underMouse() else 1
-		p.setPen(QPen(Qt.black, penWidth))
-		if self.bgColor is not None:
-			p.setBrush(self.bgColor)
-		
-		p.setRenderHint(QPainter.Antialiasing, True)
-		p.drawRoundedRect(penWidth, penWidth, self.width() - penWidth * 2, self.height() - penWidth * 2, self.rounding, self.rounding)
-		
-		super(DraggableQLabel, self).paintEvent(evt)
-
 class TagWidget(BubbleWidget):
 	tagEditRequestedSignal = pyqtSignal()
 	tagRemoveRequestedSignal = pyqtSignal()
@@ -319,6 +272,9 @@ class TagsWindow(QDockWidget):
 	
 	def _getTags(self) -> list[C4DTag]:
 		return [tW.GetTag() for tW in self.tagWidgets]
+	def _getTag(self, uuid: str) -> C4DTag | None:
+		foundTags: list[C4DTag] = [t for t in self._getTags() if t.uuid == uuid]
+		return foundTags[0] if len(foundTags) else None
 	
 	def _findTagIndex(self, tag: C4DTag):
 		for idx, t in enumerate(self._getTags()):
