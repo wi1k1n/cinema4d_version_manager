@@ -81,7 +81,7 @@ class C4DTile(QFrame):
 
 		self._setupUI()
 		self._addActions()
-		
+
 		self.picLabel.mousePressEvent = self._mouseClicked
 
 		self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -220,15 +220,36 @@ class C4DTile(QFrame):
 	# 		return True
 	# 	return super().event(evt)
 
-	def _bindTag(self, uuid: str):
-		tagsDict: dict = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
+	def _bindTag(self, uuid: str, placeAsFirst: bool = False):
+		tagsDict: dict[str, list[str]] = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
 		if not tagsDict or self.c4d.directory not in tagsDict:
 			return
-		if uuid in tagsDict[self.c4d.directory]:
-			return
-		tagsDict[self.c4d.directory].append(uuid)
+		uuidsList: list[str] = tagsDict[self.c4d.directory]
 
-		# we need to rebuild tags widget
+		try:
+			foundIdx: int = uuidsList.index(uuid)
+			if not placeAsFirst or foundIdx == 0: # nothing else is needed, exiting
+				return
+			del uuidsList[foundIdx] # found but need to rearrange, deleting existing occurence
+		except: # not found, just continuing normally
+			pass
+
+		uuidsList.insert(0 if placeAsFirst else len(uuidsList), uuid)
+		self._rebuildTagsWidget() # need to rebuild tags widget
+		
+	def _unbindTag(self, uuid: str):
+		tagsDict: dict[str, list[str]] = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
+		if not tagsDict or self.c4d.directory not in tagsDict:
+			return
+		uuidsList: list[str] = tagsDict[self.c4d.directory]
+		try:
+			foundIdx: int = uuidsList.index(uuid)
+			del uuidsList[foundIdx]
+		except:
+			return
+		self._rebuildTagsWidget() # need to rebuild tags widget
+
+	def _rebuildTagsWidget(self):
 		tagsWidgetNew = self._createTagsSectionWidget()
 		self.layout().replaceWidget(self.tagsWidget, tagsWidgetNew)
 		self.tagsWidget.deleteLater()
@@ -244,10 +265,14 @@ class C4DTile(QFrame):
 		if not mimeData.hasFormat(C4DTAG_MIMETYPE):
 			return evt.ignore()
 		tagUuid: str = str(evt.mimeData().data(C4DTAG_MIMETYPE), encoding='utf-8')
-		print(tagUuid)
-		self._bindTag(tagUuid)
+		# print(tagUuid)
+		if evt.keyboardModifiers() & Qt.ControlModifier: 	# place this tag at first place
+			self._bindTag(tagUuid, True)
+		elif evt.keyboardModifiers() & Qt.ShiftModifier: 	# remove tag
+			self._unbindTag(tagUuid)
+		else: 												# append tag at the bottom
+			self._bindTag(tagUuid, False)
 		# pos, widget = evt.pos(), evt.source()
-		# print(pos, widget)
 		evt.accept()
 
 class C4DTilesWidget(QScrollArea):
