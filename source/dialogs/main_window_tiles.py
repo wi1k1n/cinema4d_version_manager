@@ -105,7 +105,7 @@ class C4DTile(QFrame):
 			uuids: list[str] = tagsDict[self.c4d.directory]
 			for uuid in uuids:
 				tag: C4DTag = self.parent().GetTag(uuid)
-				print(tag)
+				# print(tag)
 				tagBubbleWidget: BubbleWidget = BubbleWidget(tag.name, tag.color, 5, 3)
 				font = tagBubbleWidget.font()
 				font.setPixelSize(10)
@@ -213,14 +213,19 @@ class C4DTile(QFrame):
 	# 		return True
 	# 	return super().event(evt)
 
-	def dragEnterEvent(self, e: QDragEnterEvent):
-		e.accept()
+	def dragEnterEvent(self, evt: QDragEnterEvent):
+		if evt.mimeData().hasFormat(C4DTAG_MIMETYPE):
+			return evt.accept()
+		evt.ignore()
 
-	def dropEvent(self, e: QDropEvent):
-		pos = e.pos()
-		widget = e.source()
-		print(pos, widget)
-		e.accept()
+	def dropEvent(self, evt: QDropEvent):
+		mimeData: QMimeData = evt.mimeData()
+		if not mimeData.hasFormat(C4DTAG_MIMETYPE):
+			return evt.ignore()
+		print(str(evt.mimeData().data(C4DTAG_MIMETYPE), encoding='utf-8'))
+		# pos, widget = evt.pos(), evt.source()
+		# print(pos, widget)
+		evt.accept()
 
 class C4DTilesWidget(QScrollArea):
 	def __init__(self, parent: QWidget | None = None) -> None:

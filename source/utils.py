@@ -6,6 +6,8 @@ RES_FOLDER = os.path.join(os.getcwd(), 'res')
 IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
 C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
 
+C4DTAG_MIMETYPE = 'text/c4dtaguuid'
+
 def GenerateUUID() -> str:
 	return str(uuid.uuid4())
 

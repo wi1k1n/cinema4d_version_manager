@@ -1,6 +1,6 @@
 import os, json, typing
 from PyQt5.QtCore import QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings
-from PyQt5.QtGui import QFont, QDesktopServices, QIntValidator
+from PyQt5.QtGui import QFont, QDesktopServices, QIntValidator, QDragEnterEvent, QDropEvent
 from PyQt5.QtWidgets import (
 	QLabel,
 	QMainWindow,
@@ -207,6 +207,30 @@ class PreferencesWindow(QMainWindow):
 	def _createPrefPaths(self):
 		self.pathsList.setDragDropMode(QAbstractItemView.InternalMove)
 
+		def _addSearchPath(path: str):
+			if not path or not os.path.isdir(path):
+				return
+			self._addSearchPath(path)
+			updateButtonsEnabled()
+			
+		### A very ugly workaround to make it work with both d&d of items + d&d folders
+		dee = self.pathsList.dragEnterEvent
+		de = self.pathsList.dropEvent
+		self.pathsList.setAcceptDrops(True)
+		def searchPathsDragEnterEvent(evt: QDragEnterEvent):
+			if evt.mimeData().hasUrls():
+				evt.accept()
+			dee(evt)
+		def searchPathsDropEvent(evt: QDropEvent):
+			if evt.mimeData().hasUrls():
+				for url in evt.mimeData().urls():
+					_addSearchPath(url.toLocalFile())
+					# print(url.toLocalFile())
+				evt.accept()
+			de(evt)
+		self.pathsList.dragEnterEvent = searchPathsDragEnterEvent
+		self.pathsList.dropEvent = searchPathsDropEvent
+
 		buttons = {
 			'add': QPushButton('Add path'),
 			'remove': QPushButton('Remove'),
@@ -218,14 +242,12 @@ class PreferencesWindow(QMainWindow):
 		self.pathsList.itemSelectionChanged.connect(lambda: updateButtonsEnabled())
 		self.pathsList.doubleClicked.connect(lambda: OpenFolderInDefaultExplorer(self.pathsList.currentItem().text()))
 
-		def btnAddClicked(t):
+		def btnAddClicked(evt):
 			filePath: str = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-			if filePath:
-				self._addSearchPath(filePath)
-				updateButtonsEnabled()
+			_addSearchPath(filePath)
 		buttons['add'].clicked.connect(btnAddClicked)
 
-		def btnRemoveClicked(t):
+		def btnRemoveClicked(evt):
 			if self.pathsList.currentRow() < 0:
 				return
 			self.pathsList.takeItem(self.pathsList.currentRow())
@@ -246,6 +268,13 @@ class PreferencesWindow(QMainWindow):
 
 		prefEntriesWidget = QWidget()
 		prefEntriesWidget.setLayout(layout)
+		# def searchPathsDragEnterEvent(evt: QDragEnterEvent):
+		# 	evt.accept()
+		# def searchPathsDropEvent(evt: QDropEvent):
+		# 	evt.accept()
+		# prefEntriesWidget.dragEnterEvent = searchPathsDragEnterEvent
+		# prefEntriesWidget.dropEvent = searchPathsDropEvent
+
 
 		return prefEntriesWidget
 

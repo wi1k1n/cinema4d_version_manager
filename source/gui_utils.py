@@ -208,10 +208,10 @@ class DraggableQLabel(QLabel):
 	def __init__(self, text):
 		super().__init__(text)
 
-	def mouseMoveEvent(self, e: QMouseEvent):
-		if e.buttons() == Qt.LeftButton:
+	def mouseMoveEvent(self, evt: QMouseEvent):
+		if evt.buttons() == Qt.LeftButton:
 			drag = QDrag(self)
-			mime = QMimeData()
+			mime: QMimeData = self.GetDragMimeData(evt)
 			drag.setMimeData(mime)
 			
 			pixmap = QPixmap(self.size())
@@ -219,6 +219,9 @@ class DraggableQLabel(QLabel):
 			drag.setPixmap(pixmap)
 	
 			drag.exec_(Qt.MoveAction)
+	
+	def GetDragMimeData(self, evt: QMouseEvent):
+		return QMimeData()
 
 # https://stackoverflow.com/a/18069897
 class BubbleWidget(DraggableQLabel):

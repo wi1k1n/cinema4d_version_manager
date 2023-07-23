@@ -2,7 +2,7 @@ import os, json, typing, json
 from functools import partial
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import Qt, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal
+from PyQt5.QtCore import Qt, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QByteArray
 from PyQt5.QtGui import QFont, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen
 from PyQt5.QtWidgets import (
 	QLabel,
@@ -106,8 +106,10 @@ class TagWidget(BubbleWidget):
 	def _onRemoveAction(self):
 		self.tagRemoveRequestedSignal.emit()
 	
-	# def _onMousePress(self, evt: QMouseEvent):
-	# 	print(self)
+	def GetDragMimeData(self, evt: QMouseEvent):
+		mimeData: QMimeData = QMimeData()
+		mimeData.setData(C4DTAG_MIMETYPE, QByteArray(self.tag.uuid.encode()))
+		return mimeData
 
 class ColorPickerWidget(QWidget):
 	def __init__(self, parent: QWidget | None = None) -> None:
