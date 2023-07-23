@@ -1,4 +1,4 @@
-import os, json, typing
+import os, json, typing, json
 from functools import partial
 
 from PyQt5 import QtCore, QtGui
@@ -30,11 +30,30 @@ from PyQt5.QtWidgets import (
 
 from version import *
 from gui_utils import *
+from utils import *
 
 class C4DTag:
-	def __init__(self, name: str, color: QColor | None = None) -> None:
+	def __init__(self, name: str, uuid: str = '', color: QColor | None = None) -> None:
+		self.uuid: str = uuid if uuid else GenerateUUID()
 		self.name: str = name
 		self.color: QColor | None = color
+	
+	@staticmethod
+	def FromJSON(jsonStr: dict):
+		name: str = jsonStr['name'] if 'name' in jsonStr else ''
+		color: QColor | None = QColor(jsonStr['color']) if 'color' in jsonStr and jsonStr['color'] is not None else None
+		uuid: str = jsonStr['uuid'] if 'uuid' in jsonStr else ''
+		if not name or not uuid:
+			print(f'ERROR Loading C4DTag: {name=} | {uuid=}')
+		return C4DTag(name, uuid, color)
+
+	def ToJSON(self) -> str:
+		ret: dict = {
+			'uuid': self.uuid,
+			'name': self.name,
+			'color': self.color.name() if self.color else None,
+		}
+		return ret
 
 # https://stackoverflow.com/a/18069897
 class BubbleWidget(DraggableQLabel):
@@ -168,6 +187,7 @@ class ManageTagDialog(QDialog):
 	def __init__(self, parent: QWidget | None = None, tag: C4DTag | None = None) -> None:
 		super().__init__(parent)
 		
+		self.tagUUID: str = tag.uuid if tag else ''
 		self.lineEditName: QLineEdit = QLineEdit()
 		self.colorWidget: ColorPickerWidget = ColorPickerWidget()
 		buttons: QDialogButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -207,7 +227,7 @@ class ManageTagDialog(QDialog):
 		return self.tag
 	
 	def GetTagEdited(self) -> C4DTag:
-		return C4DTag(self.lineEditName.text(), self.colorWidget.GetColor())
+		return C4DTag(self.lineEditName.text(), self.tagUUID, self.colorWidget.GetColor())
 	
 	def IsEditing(self) -> bool:
 		return self.isEditing
@@ -224,7 +244,9 @@ class ManageTagDialog(QDialog):
 		return evt.accept()
 
 class TagsWindow(QDockWidget):
-	def __init__(self, parent=None, tags: list[C4DTag] = list()):
+	TAGS_FILENAME = 'tags.json'
+
+	def __init__(self, parent=None):
 		super().__init__(parent)
 
 		self.manageTagWindow: ManageTagDialog = ManageTagDialog()
@@ -241,8 +263,9 @@ class TagsWindow(QDockWidget):
 		widget.setMinimumWidth(20)
 
 		self.tagsFlowLayout = FlowLayout(widget)
-		for tag in tags:
-			self._addTag(tag)
+		self.LoadTags()
+		# for tag in tags:
+		# 	self._addTag(tag)
 
 		mainArea.setWidget(widget)
 		self.setWidget(mainArea)
@@ -257,6 +280,34 @@ class TagsWindow(QDockWidget):
 		self.addAction(self.actionCreateNewTag)
 		self.setContextMenuPolicy(Qt.ActionsContextMenu)
 	
+	def LoadTags(self):
+		# TODO: Use QSettings instead? check preferences window as well
+		tagsFilePath: str = self.GetTagsSavePath()
+		if not os.path.isfile(tagsFilePath):
+			return
+
+		with open(tagsFilePath, 'r') as fp:
+			data: dict = json.load(fp)
+			if 'version' in data:
+				print(f"Loading tags: file version {data['version']}")
+			if 'tags' in data:
+				tags: list = data['tags']
+				for t in tags:
+					self._addTag(C4DTag.FromJSON(t))
+
+	def SaveTags(self):
+		tagsFilePath: str = self.GetTagsSavePath()
+
+		storeDict: dict = dict()
+		storeDict['version'] = C4DL_VERSION
+		storeDict['tags'] = list()
+
+		for t in self._getTags():
+			storeDict['tags'].append(t.ToJSON())
+		
+		with open(tagsFilePath, 'w') as fp:
+			json.dump(storeDict, fp)
+	
 	def _addTag(self, tag: C4DTag):
 		tagWidget: TagWidget = TagWidget(tag)
 		tagWidget.mouseDoubleClickEvent = partial(lambda tw, evt: self._openManageTagWindowExisting(tw), tagWidget)
@@ -266,9 +317,12 @@ class TagsWindow(QDockWidget):
 		self.tagsFlowLayout.addWidget(tagWidget)
 		self.tagWidgets.append(tagWidget)
 	
+	def _getTags(self) -> list[C4DTag]:
+		return [tW.GetTag() for tW in self.tagWidgets]
+	
 	def _findTagIndex(self, tag: C4DTag):
-		for idx, tagWidget in enumerate(self.tagWidgets):
-			if tagWidget.GetTag() == tag: # TODO: proper equality test!
+		for idx, t in enumerate(self._getTags()):
+			if t.uuid == tag.uuid: # TODO: proper equality test!
 				return idx
 		return -1
 		
@@ -297,8 +351,7 @@ class TagsWindow(QDockWidget):
 		tagNew: C4DTag = self.manageTagWindow.GetTagEdited()
 		tagIdx: int = self._findTagIndex(tag)
 		if tagIdx >= 0: # found previous tag
-			tagWidget: TagWidget = self.layout().itemAt(tagIdx).widget()
-			tagWidget.SetTag(tagNew)
+			self.tagWidgets[tagIdx].SetTag(tagNew)
 			return
 		tagNewIdx: int = self._findTagIndex(tagNew)
 		if tagNewIdx >= 0: return print('Already exists!!!')
@@ -321,3 +374,8 @@ class TagsWindow(QDockWidget):
 		if self.manageTagWindow:
 			self.manageTagWindow.close()
 		event.accept()
+		
+	@staticmethod
+	def GetTagsSavePath():
+		prefsFolderPath: str = GetPrefsFolderPath()
+		return os.path.join(prefsFolderPath, TagsWindow.TAGS_FILENAME)

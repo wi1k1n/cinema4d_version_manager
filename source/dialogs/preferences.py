@@ -1,6 +1,6 @@
-import os, json
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QFont, QDesktopServices
+import os, json, typing
+from PyQt5.QtCore import QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings
+from PyQt5.QtGui import QFont, QDesktopServices, QIntValidator
 from PyQt5.QtWidgets import (
 	QLabel,
 	QMainWindow,
@@ -16,12 +16,17 @@ from PyQt5.QtWidgets import (
 	QLayout,
 	QAbstractItemView,
 	QFormLayout,
-	QCheckBox
+	QCheckBox,
+	QSlider,
+	QSizePolicy
 )
 
 from version import *
 import utils
 from utils import OpenFolderInDefaultExplorer
+
+class PreferencesEntries(int):
+	SearchPaths: int = ...
 
 class PreferencesWindow(QMainWindow):
 	PREFERENCES_FILENAME = 'preferences.json'
@@ -29,20 +34,22 @@ class PreferencesWindow(QMainWindow):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
-		self.pathsList = QListWidget()
+		self.setWindowTitle("Preferences")
+		self.setWindowFlags(self.windowFlags() & Qt.WindowCloseButtonHint)
+		self.resize(400, 400)
+
+		self._initUI()
 
 		self.LoadPreferences()
-
+	
+	def _initUI(self):
+		self.pathsList = QListWidget()
 		self.categories = {
 			'General': self._createPrefGeneral(),
 			'Appearance': self._createPrefAppearance(),
 			'Search paths': self._createPrefPaths(),
 			'Customization': self._createCustomization(),
 		}
-
-		self.setWindowTitle("Preferences")
-		self.setWindowFlags(self.windowFlags() & Qt.WindowCloseButtonHint)
-		self.resize(500, 400)
 
 		# Stack of widgets containing preferences per category
 		self.contentStack = QStackedWidget()
@@ -53,11 +60,9 @@ class PreferencesWindow(QMainWindow):
 		
 		# List with preferences categories
 		self.categoriesWidget = QListWidget()
-		# self.categoriesWidget.setMinimumWidth(150)
-		self.categoriesWidget.setMinimumHeight(50)
+		self.categoriesWidget.setMinimumHeight(100)
 		for k in self.categories.keys():
 			self.categoriesWidget.addItem(k)
-		# self.categoriesWidget.setFixedWidth(self.categoriesWidget.sizeHintForColumn(0) + 2 * self.categoriesWidget.frameWidth() + 10)
 		self.categoriesWidget.currentItemChanged.connect(self._prefCategoryChanged)
 		self.categoriesWidget.setCurrentRow(0)
 
@@ -74,7 +79,7 @@ class PreferencesWindow(QMainWindow):
 		self.contentLayout.addWidget(self.savePreferencesButton)
 		contentWidget: QWidget = QWidget()
 		contentWidget.setLayout(self.contentLayout)
-		contentWidget.setFixedWidth(130)
+		contentWidget.setFixedWidth(contentWidget.minimumSizeHint().width())
 
 		# Main layout of prefs window
 		self.prefsLayout: QHBoxLayout = QHBoxLayout()
@@ -83,15 +88,12 @@ class PreferencesWindow(QMainWindow):
 
 		centralWidget = QWidget()
 		centralWidget.setLayout(self.prefsLayout)
+		centralWidget.setMinimumWidth(self.width())
 		self.setCentralWidget(centralWidget)
-	
-	def GetSearchPaths(self):
-		return [self.pathsList.item(i).text() for i in range(self.pathsList.count())]
 
-	@staticmethod
-	def GetPreferencesSavePath():
-		prefsFolderPath: str = utils.GetPrefsFolderPath()
-		return os.path.join(prefsFolderPath, PreferencesWindow.PREFERENCES_FILENAME)
+	def GetPreference(self, attr: PreferencesEntries) -> ...:
+		if attr == PreferencesEntries.SearchPaths:
+			return [self.pathsList.item(i).text() for i in range(self.pathsList.count())]
 
 	def LoadPreferences(self):
 		# TODO: Use QSettings instead
@@ -104,7 +106,7 @@ class PreferencesWindow(QMainWindow):
 		with open(prefsFilePath, 'r') as fp:
 			data: dict = json.load(fp)
 			if 'version' in data:
-				print(f"C4D Version Manager: v{data['version']}")
+				print(f"Loading preferences: file version {data['version']}")
 			if 'preferences' in data:
 				prefs: dict = data['preferences']
 				if 'search_paths' in prefs:
@@ -116,17 +118,17 @@ class PreferencesWindow(QMainWindow):
 	def SavePreferences(self):
 		storeDict: dict = dict()
 		storeDict['version'] = C4DL_VERSION
-		storeDict['preferences'] = dict()
+		storeDict['preferences'] = dict() # pref attributes from preferences window
 
+		# Preferences
 		prefsDict: dict = storeDict['preferences']
 		prefsDict['search_paths'] = list()
-		for p in self.GetSearchPaths():
+		for p in self.GetPreference(PreferencesEntries.SearchPaths):
 			prefsDict['search_paths'].append(p)
 
 		prefsFilePath: str = PreferencesWindow.GetPreferencesSavePath()
 		with open(prefsFilePath, 'w') as fp:
 			json.dump(storeDict, fp)
-
 
 	def _addSearchPath(self, path: str):
 		newItem = QListWidgetItem(path)
@@ -151,13 +153,21 @@ class PreferencesWindow(QMainWindow):
 		return prefEntriesWidget
 
 	def _createPrefAppearance(self):
-		prefEntriesLayout = QVBoxLayout()
-		prefEntriesLayout.addWidget(QLabel("Appearance"))
-		prefEntriesLayout.addWidget(QLabel("TODO: Adjust visual appearance properties"))
-		prefEntriesLayout.addStretch()
+		guiSizeSLider: QSlider = QSlider(Qt.Horizontal)
+		guiSizeSLider.setMinimum(1)
+		guiSizeSLider.setMaximum(3)
+		guiSizeSLider.setSingleStep(1)
+		guiSizeSLider.setValue(2)
+		guiSizeSLider.setTickPosition(QSlider.TicksBelow)
+		guiSizeSLider.setTickInterval(1)
+		# guiSizeSLider.setMaximumWidth(128)
+		guiSizeSLider.setDisabled(True)
+
+		layout: QFormLayout = QFormLayout()
+		layout.addRow(QLabel('GUI size'), guiSizeSLider)
 
 		prefEntriesWidget = QWidget()
-		prefEntriesWidget.setLayout(prefEntriesLayout)
+		prefEntriesWidget.setLayout(layout)
 
 		return prefEntriesWidget
 
@@ -216,3 +226,8 @@ class PreferencesWindow(QMainWindow):
 		prefEntriesWidget.setLayout(layout)
 
 		return prefEntriesWidget
+
+	@staticmethod
+	def GetPreferencesSavePath():
+		prefsFolderPath: str = utils.GetPrefsFolderPath()
+		return os.path.join(prefsFolderPath, PreferencesWindow.PREFERENCES_FILENAME)

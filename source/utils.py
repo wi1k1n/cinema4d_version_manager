@@ -1,6 +1,13 @@
-import os, re, datetime as dt
+import os, re, datetime as dt, uuid
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
+
+RES_FOLDER = os.path.join(os.getcwd(), 'res')
+IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
+C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
+
+def GenerateUUID() -> str:
+	return str(uuid.uuid4())
 
 def GetPrefsFolderPath() -> str:
 	path: str = os.path.join(GetAppDataPath(), 'c4d-version-manager')

@@ -1,7 +1,7 @@
 import sys, random, os
 from functools import partial
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
 
 import res.qrc_resources
@@ -9,11 +9,7 @@ from dialogs.main_window import MainWindow
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 from gui_utils import *
-
-# TODO: organize this without duplicating code!
-RES_FOLDER = os.path.join(os.getcwd(), 'res')
-IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
-
+from utils import *
 
 # https://realpython.com/python-menus-toolbars/#building-context-or-pop-up-menus-in-pyqt
 if __name__ == "__main__":
@@ -21,6 +17,9 @@ if __name__ == "__main__":
 
 	icon: QIcon = QIcon(os.path.join(IMAGES_FOLDER, 'icon.png'))
 	app.setWindowIcon(icon)
+	font: QFont = app.font()
+	# font.setPixelSize(16)
+	app.setFont(font)
 
 	win: MainWindow = MainWindow()
 	win.show()
@@ -39,6 +38,7 @@ if __name__ == "__main__":
 		if reason != QSystemTrayIcon.ActivationReason.Context and win.isHidden():
 			win.show()
 			win.activateWindow()
+			win.restoreState()
 	tray.activated.connect(trayActivated)
 	
 	# # https://stackoverflow.com/a/52617714
