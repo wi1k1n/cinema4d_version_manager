@@ -67,6 +67,7 @@ class C4DTile(QFrame):
 			return super().styleHint(hint, option, widget, returnData)
 
 	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
+		self.parentTilesWidget = parent
 		super().__init__(parent)
 
 		self.c4d: C4DInfo = c4d
@@ -78,15 +79,24 @@ class C4DTile(QFrame):
 		# self.setMouseTracking(True)
 		self.setStyle(C4DTile.C4DTileProxyStyle())
 
+		self._setupUI()
+		self._addActions()
+		
+		self.picLabel.mousePressEvent = self._mouseClicked
+
+		self.setContextMenuPolicy(Qt.CustomContextMenu)
+		self.customContextMenuRequested.connect(self._contextMenuRequested)
+
+	def _setupUI(self):
 		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
 		c4dIconName: str = 'C4D ' + self.c4d.GetVersionMajor() + '.png'
 		c4dIconPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconName)
 		pic = QPixmap(c4dIconPath if os.path.isfile(c4dIconPath) else os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
 
-		picLabel: QLabel = QLabel()
-		picLabel.setPixmap(pic)
-		picLabel.setScaledContents(True)
-		picLabel.setCursor(QCursor(Qt.PointingHandCursor))
+		self.picLabel: QLabel = QLabel()
+		self.picLabel.setPixmap(pic)
+		self.picLabel.setScaledContents(True)
+		self.picLabel.setCursor(QCursor(Qt.PointingHandCursor))
 
 		versLabel: QLabel = QLabel(self.c4d.GetVersionString())
 		versLabel.setFont(QFont('SblHebrew', 12))
@@ -97,40 +107,37 @@ class C4DTile(QFrame):
 		# folderLabel.setWordWrap(True)
 		folderLabel.setFont(QFont('SblHebrew', 10))
 
-		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # tagsLayout: FlowLayout = FlowLayout()
+		self.tagsWidget: QWidget = self._createTagsSectionWidget()
+
+		layout: QVBoxLayout = QVBoxLayout()
+		layout.addWidget(versLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(self.picLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(folderLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(self.tagsWidget, alignment=Qt.AlignCenter)
+
+		self.setLayout(layout)
+
+		picSize: int = int(min(self.width(), self.height()) * 3.)
+		self.picLabel.setFixedSize(picSize, picSize)
+
+		self.setToolTip(self._createTooltipMenuString())
+
+	def _createTagsSectionWidget(self):
+		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
 		tagsWidget: QWidget = QWidget()
 		tagsWidget.setLayout(tagsLayout)
-		tagsDict: dict = self.parent().c4dTags
+		tagsDict: dict = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
 		if tagsDict and self.c4d.directory in tagsDict:
 			uuids: list[str] = tagsDict[self.c4d.directory]
 			for uuid in uuids:
-				tag: C4DTag = self.parent().GetTag(uuid)
+				tag: C4DTag = self.parentTilesWidget.GetTag(uuid)
 				# print(tag)
 				tagBubbleWidget: BubbleWidget = BubbleWidget(tag.name, tag.color, 5, 3)
 				font = tagBubbleWidget.font()
 				font.setPixelSize(10)
 				tagBubbleWidget.setFont(font)
 				tagsLayout.addWidget(tagBubbleWidget)
-		
-
-		layout: QVBoxLayout = QVBoxLayout()
-		layout.addWidget(versLabel, alignment=Qt.AlignCenter)
-		layout.addWidget(picLabel, alignment=Qt.AlignCenter)
-		layout.addWidget(folderLabel, alignment=Qt.AlignCenter)
-		layout.addWidget(tagsWidget, alignment=Qt.AlignCenter)
-
-		self.setLayout(layout)
-
-		picSize: int = int(min(self.width(), self.height()) * 3.)
-		picLabel.setFixedSize(picSize, picSize)
-
-		self.setToolTip(self._createTooltipMenuString())
-		
-		self._addActions()
-		picLabel.mousePressEvent = self._mouseClicked
-
-		self.setContextMenuPolicy(Qt.CustomContextMenu)
-		self.customContextMenuRequested.connect(self._contextMenuRequested)
+		return tagsWidget
 	
 	def _mouseClicked(self, evt: QMouseEvent):
 		action: QAction | None = self._getActionForMouseClick(evt.button(), evt.modifiers())
@@ -213,6 +220,20 @@ class C4DTile(QFrame):
 	# 		return True
 	# 	return super().event(evt)
 
+	def _bindTag(self, uuid: str):
+		tagsDict: dict = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
+		if not tagsDict or self.c4d.directory not in tagsDict:
+			return
+		if uuid in tagsDict[self.c4d.directory]:
+			return
+		tagsDict[self.c4d.directory].append(uuid)
+
+		# we need to rebuild tags widget
+		tagsWidgetNew = self._createTagsSectionWidget()
+		self.layout().replaceWidget(self.tagsWidget, tagsWidgetNew)
+		self.tagsWidget.deleteLater()
+		self.tagsWidget = tagsWidgetNew
+
 	def dragEnterEvent(self, evt: QDragEnterEvent):
 		if evt.mimeData().hasFormat(C4DTAG_MIMETYPE):
 			return evt.accept()
@@ -222,7 +243,9 @@ class C4DTile(QFrame):
 		mimeData: QMimeData = evt.mimeData()
 		if not mimeData.hasFormat(C4DTAG_MIMETYPE):
 			return evt.ignore()
-		print(str(evt.mimeData().data(C4DTAG_MIMETYPE), encoding='utf-8'))
+		tagUuid: str = str(evt.mimeData().data(C4DTAG_MIMETYPE), encoding='utf-8')
+		print(tagUuid)
+		self._bindTag(tagUuid)
 		# pos, widget = evt.pos(), evt.source()
 		# print(pos, widget)
 		evt.accept()
@@ -270,7 +293,8 @@ class C4DTilesWidget(QScrollArea):
 			if not len(indices): indices = [i for i in range(len(self.c4dEntries))]
 			for idx in indices:
 				c4dinfo: C4DInfo = self.c4dEntries[idx]
-				self.c4dTags[c4dinfo.directory] = [t.uuid for t in self.GetTags()]
+				# self.c4dTags[c4dinfo.directory] = [t.uuid for t in self.GetTags()]
+				self.c4dTags[c4dinfo.directory] = list()
 				tileWidget: C4DTile = C4DTile(c4dinfo, self)
 				flowLayout.addWidget(tileWidget)
 

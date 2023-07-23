@@ -225,7 +225,6 @@ class PreferencesWindow(QMainWindow):
 			if evt.mimeData().hasUrls():
 				for url in evt.mimeData().urls():
 					_addSearchPath(url.toLocalFile())
-					# print(url.toLocalFile())
 				evt.accept()
 			de(evt)
 		self.pathsList.dragEnterEvent = searchPathsDragEnterEvent
@@ -268,13 +267,6 @@ class PreferencesWindow(QMainWindow):
 
 		prefEntriesWidget = QWidget()
 		prefEntriesWidget.setLayout(layout)
-		# def searchPathsDragEnterEvent(evt: QDragEnterEvent):
-		# 	evt.accept()
-		# def searchPathsDropEvent(evt: QDropEvent):
-		# 	evt.accept()
-		# prefEntriesWidget.dragEnterEvent = searchPathsDragEnterEvent
-		# prefEntriesWidget.dropEvent = searchPathsDropEvent
-
 
 		return prefEntriesWidget
 
