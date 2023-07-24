@@ -31,6 +31,7 @@ if __name__ == "__main__":
 
 	win: MainWindow = MainWindow()
 	win.show()
+	win.FirstRunHandler()
 
 	actionExit: QAction = QAction('Exit')
 	actionExit.triggered.connect(sys.exit)

@@ -22,7 +22,8 @@ from PyQt5.QtWidgets import (
 	QGroupBox,
 	QTreeWidget, QTreeWidgetItem,
 	QStatusBar,
-	QProxyStyle
+	QProxyStyle,
+	QMessageBox
 )
 
 # import qrc_resources
@@ -77,7 +78,7 @@ class MainWindow(QMainWindow):
 		self.setWindowTitle("C4D Selector")
 		self.resize(1420, 800)
 		self.setMinimumSize(350, 250)
-		self.showEvent = self._onShowed
+		# self.showEvent = self._onShowed
 
 		self.dialogs = {
 			'preferences': PreferencesWindow(),
@@ -114,6 +115,20 @@ class MainWindow(QMainWindow):
 		self.c4dTabTiles.LoadCache()
 
 		self.openTagsWindow()
+
+		# TODO: handle this better as a first run guidance
+		# Offer user to open settings
+		self.openPreferencesFlag: bool = False
+		if dlg:= self._getDialog('preferences'):
+			if not dlg.preferencesLoaded:
+				msg = QMessageBox(QMessageBox.Information, 'Empty preferences..', 'This seems to be a first run of the app. Do you want to start with configuring Search Paths in preferences?', QMessageBox.Yes | QMessageBox.No)
+				if msg.exec_() == QMessageBox.Yes:
+					# find search paths idx
+					for idx, key in enumerate(dlg.categories.keys()):
+						if key.lower() == 'search paths':
+							dlg.categoriesWidget.setCurrentRow(idx)
+							self.openPreferencesFlag = True
+							break
 	
 	def _createActions(self):
 		self.actionSave = QAction("&Save", self)
@@ -205,8 +220,10 @@ class MainWindow(QMainWindow):
 		self._showActivateDialog('about')
 
 	def openTagsWindow(self):
-		if dlg := self._showActivateDialog('tags'):
+		KEY = 'tags'
+		if dlg := self._getDialog(KEY):
 			self.addDockWidget(Qt.RightDockWidgetArea, dlg)
+			self._showActivateDialog(KEY)
 	
 	def _getDialog(self, dialogKey: str) -> QWidget | None:
 		if dialogKey not in self.dialogs:
@@ -214,11 +231,11 @@ class MainWindow(QMainWindow):
 		return self.dialogs[dialogKey]
 	
 	def _showActivateDialog(self, dialogKey: str) -> QWidget | None:
-		dlg: QWidget | None = self._getDialog(dialogKey)
-		if dlg:
+		if dlg := self._getDialog(dialogKey):
 			dlg.show()
 			dlg.activateWindow()
-		return dlg
+			return dlg
+		return None
 
 
 	# def populateOpenRecent(self):
@@ -261,8 +278,11 @@ class MainWindow(QMainWindow):
 			return dlgTags._getTag(uuid)
 		return None
 
-	def _onShowed(self, evt):
-		print('on show:', evt)
+	# def _onShowed(self, evt):
+
+	def FirstRunHandler(self):
+		if self.openPreferencesFlag:
+			self.actionPrefs.trigger()
 
 	def closeEvent(self, evt: QCloseEvent):
 		self.hide()

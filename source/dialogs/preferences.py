@@ -20,7 +20,8 @@ from PyQt5.QtWidgets import (
 	QSlider,
 	QSizePolicy,
 	QGroupBox,
-	QShortcut
+	QShortcut,
+	QMessageBox
 )
 
 from version import *
@@ -42,7 +43,7 @@ class PreferencesWindow(QMainWindow):
 
 		self._initUI()
 
-		self.LoadPreferences()
+		self.preferencesLoaded: bool = self.LoadPreferences()
 	
 	def _initUI(self):
 		self.pathsList = QListWidget()
@@ -58,7 +59,7 @@ class PreferencesWindow(QMainWindow):
 		for v in self.categories.values():
 			if v is not None:
 				self.contentStack.addWidget(v)
-		self.contentStack.setCurrentIndex(0)
+		# self.contentStack.setCurrentIndex(1)
 		
 		# List with preferences categories
 		self.categoriesWidget = QListWidget()
@@ -97,13 +98,13 @@ class PreferencesWindow(QMainWindow):
 		if attr == PreferencesEntries.SearchPaths:
 			return [self.pathsList.item(i).text() for i in range(self.pathsList.count())]
 
-	def LoadPreferences(self):
+	def LoadPreferences(self) -> bool:
 		# TODO: Use QSettings instead
 		# https://gist.github.com/eyllanesc/be8a476bb7038c7579c58609d7d0f031
 		# https://docs.huihoo.com/pyqt/PyQt5/pyqt_qsettings.html
 		prefsFilePath: str = PreferencesWindow.GetPreferencesSavePath()
 		if not os.path.isfile(prefsFilePath):
-			return
+			return False
 
 		with open(prefsFilePath, 'r') as fp:
 			data: dict = json.load(fp)
@@ -116,6 +117,7 @@ class PreferencesWindow(QMainWindow):
 					self.pathsList.clear()
 					for p in sPaths:
 						self._addSearchPath(p)
+		return True
 
 	def SavePreferences(self):
 		storeDict: dict = dict()
@@ -193,6 +195,7 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout.addRow(cbC4DIconRonalds)
 		grpTilesLayout.addRow(QCheckBox('Trim C4D version from folder name'))
 		grpTilesLayout.addRow(QCheckBox('Show timestamp'))
+		grpTilesLayout.addRow(QCheckBox('Unused folded group'))
 
 		##### Main layout
 		mainLayout: QVBoxLayout = QVBoxLayout()
