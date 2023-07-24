@@ -1,4 +1,4 @@
-import sys, os, typing, datetime as dt
+import sys, os, typing, datetime as dt, json
 from subprocess import Popen, PIPE
 from PyQt5 import QtCore, QtGui
 
@@ -29,6 +29,7 @@ from PyQt5.QtWidgets import (
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 from dialogs.tags import TagsWindow, C4DTag
+from version import *
 from utils import *
 from gui_utils import *
 
@@ -131,7 +132,8 @@ class C4DTile(QFrame):
 			uuids: list[str] = tagsDict[self.c4d.directory]
 			for uuid in uuids:
 				tag: C4DTag = self.parentTilesWidget.GetTag(uuid)
-				# print(tag)
+				if tag is None:
+					continue
 				tagBubbleWidget: BubbleWidget = BubbleWidget(tag.name, tag.color, 5, 3)
 				font = tagBubbleWidget.font()
 				font.setPixelSize(10)
@@ -276,11 +278,13 @@ class C4DTile(QFrame):
 		evt.accept()
 
 class C4DTilesWidget(QScrollArea):
+	CACHE_FILENAME = 'cache.json'
 	def __init__(self, parent: QWidget | None = None) -> None:
 		self.mainWindow = parent
 		super().__init__(parent)
 
 		self.c4dEntries: list[C4DInfo] = list()
+		self.c4dGroups: list[C4DTileGroup] = [C4DTileGroup()]
 		self.c4dTags: dict[str, list[str]] = dict() # mapping from c4d_directory to a list of uuids to the tags
 
 		self.setWidgetResizable(True)
@@ -289,6 +293,7 @@ class C4DTilesWidget(QScrollArea):
 		if dlg := self.mainWindow:
 			return dlg.GetTags()
 		return list()
+	
 	def GetTag(self, uuid: str) -> C4DTag | None:
 		if dlg := self.mainWindow:
 			return dlg.GetTag(uuid)
@@ -296,13 +301,13 @@ class C4DTilesWidget(QScrollArea):
 	
 	def updateTiles(self, c4ds: list[C4DInfo], grouping: list[C4DTileGroup] | None = None):
 		self.c4dEntries = c4ds
-
-		c4dGroups: list[C4DTileGroup] = [C4DTileGroup()]
 		if grouping is not None:
-			c4dGroups = grouping
-		if not len(c4dGroups):
-			c4dGroups = [C4DTileGroup()]
-
+			self.c4dGroups = grouping
+		if not len(self.c4dGroups):
+			self.c4dGroups = [C4DTileGroup()]
+		self._rebuildWidget()
+	
+	def _rebuildWidget(self):
 		if self.widget(): self.widget().deleteLater()
 
 		groupsLayout: QVBoxLayout = QVBoxLayout()
@@ -312,14 +317,15 @@ class C4DTilesWidget(QScrollArea):
 		self.setWidget(centralWidget)
 
 		# Populate
-		for grp in c4dGroups:
+		for grp in self.c4dGroups:
 			flowLayout: FlowLayout = FlowLayout()
 			indices = grp.indices
 			if not len(indices): indices = [i for i in range(len(self.c4dEntries))]
 			for idx in indices:
 				c4dinfo: C4DInfo = self.c4dEntries[idx]
 				# self.c4dTags[c4dinfo.directory] = [t.uuid for t in self.GetTags()]
-				self.c4dTags[c4dinfo.directory] = list()
+				if c4dinfo.directory not in self.c4dTags:
+					self.c4dTags[c4dinfo.directory] = list()
 				tileWidget: C4DTile = C4DTile(c4dinfo, self)
 				flowLayout.addWidget(tileWidget)
 
@@ -333,5 +339,47 @@ class C4DTilesWidget(QScrollArea):
 			groupsLayout.addWidget(curWidget)
 		
 		groupsLayout.addStretch()
+	
+	def SaveCache(self):
+		saveFilePath: str = self.GetCacheSavePath()
 
-		print(self.GetTags())
+		storeDict: dict = dict()
+		storeDict['version'] = C4DL_VERSION
+		storeDict['cache']: dict[str, dict] = dict() # mapping of c4ds to their properties
+
+		cache: dict[str, dict] = storeDict['cache']
+		# first create new dict for all stored c4ds
+		for c4dinfo in self.c4dEntries:
+			cache[c4dinfo.directory] = dict()
+			c4dDict: dict = cache[c4dinfo.directory]
+			# list of tag uuids that are binded to current c4d
+			c4dDict['tagUuids']: list[str] = self.c4dTags[c4dinfo.directory] if c4dinfo.directory in self.c4dTags else list()
+
+		with open(saveFilePath, 'w') as fp:
+			json.dump(storeDict, fp)
+	
+	def LoadCache(self):
+		# TODO: Use QSettings instead? check preferences window as well
+		loadFilePath: str = self.GetCacheSavePath()
+		if not os.path.isfile(loadFilePath):
+			return
+
+		knownC4DPaths: list[str] = [c4dinfo.directory for c4dinfo in self.c4dEntries]
+		with open(loadFilePath, 'r') as fp:
+			data: dict = json.load(fp)
+			if 'version' in data:
+				print(f"Loading cache: file version {data['version']}")
+			if 'cache' in data:
+				cache: dict[str, dict] = data['cache']
+				for c4d, c4dDict in cache.items():
+					if c4d not in knownC4DPaths:
+						print(f'Cache contains entry that is not found anymore! C4D Path: {c4d}')
+						continue
+					self.c4dTags[c4d]: list[str] = c4dDict['tagUuids'] if 'tagUuids' in c4dDict else list()
+		self._rebuildWidget()
+
+	
+	@staticmethod
+	def GetCacheSavePath():
+		prefsFolderPath: str = GetPrefsFolderPath()
+		return os.path.join(prefsFolderPath, C4DTilesWidget.CACHE_FILENAME)

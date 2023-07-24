@@ -201,6 +201,8 @@ class ManageTagDialog(QDialog):
 class TagsWindow(QDockWidget):
 	TAGS_FILENAME = 'tags.json'
 
+	tagEditedSignal = pyqtSignal(C4DTag)
+
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
@@ -309,7 +311,9 @@ class TagsWindow(QDockWidget):
 		tagNew: C4DTag = self.manageTagWindow.GetTagEdited()
 		tagIdx: int = self._findTagIndex(tag)
 		if tagIdx >= 0: # found previous tag
+			tagNew.uuid = tag.uuid # preserve uuid to stay consistent
 			self.tagWidgets[tagIdx].SetTag(tagNew)
+			self.tagEditedSignal.emit(tagNew)
 			return
 		tagNewIdx: int = self._findTagIndex(tagNew)
 		if tagNewIdx >= 0: return print('Already exists!!!')

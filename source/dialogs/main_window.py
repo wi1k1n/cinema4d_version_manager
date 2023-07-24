@@ -108,8 +108,12 @@ class MainWindow(QMainWindow):
 		self._createStatusBar()
 		self._connectActions()
 
+		self.dialogs['tags'].tagEditedSignal.connect(lambda tag: self.c4dTabTiles._rebuildWidget())
+
 		self.rescan()
-		self.openTags()
+		self.c4dTabTiles.LoadCache()
+
+		self.openTagsWindow()
 	
 	def _createActions(self):
 		self.actionSave = QAction("&Save", self)
@@ -183,13 +187,16 @@ class MainWindow(QMainWindow):
 		self.actionExit.triggered.connect(sys.exit)
 		self.actionAbout.triggered.connect(self.about)
 		self.actionRescan.triggered.connect(self.rescan)
-		self.actionTags.triggered.connect(self.openTags)
+		self.actionTags.triggered.connect(self.openTagsWindow)
 	
 	def _storeData(self):
 		# Tags
 		dlgTags: TagsWindow | None = self._getDialog('tags')
 		if dlgTags:
 			dlgTags.SaveTags()
+		
+		# C4Ds cache
+		self.c4dTabTiles.SaveCache()
 
 	def openPreferences(self):
 		self._showActivateDialog('preferences')
@@ -197,7 +204,7 @@ class MainWindow(QMainWindow):
 	def about(self):
 		self._showActivateDialog('about')
 
-	def openTags(self):
+	def openTagsWindow(self):
 		if dlg := self._showActivateDialog('tags'):
 			self.addDockWidget(Qt.RightDockWidgetArea, dlg)
 	
@@ -241,12 +248,14 @@ class MainWindow(QMainWindow):
 			offs: int = len(c4dEntries)
 			# c4dGroups.append(C4DTileGroup([i + offs for i in range(len(c4dsDict))], path))
 			c4dEntries += [v for v in c4dsDict.values()]
+		# self.c4dTabTiles.updateTiles([c for c in c4dEntries if c.directory == 'C:/Program Files\\Maxon Cinema 4D 2023'], c4dGroups)
 		self.c4dTabTiles.updateTiles(c4dEntries, c4dGroups)
 	
 	def GetTags(self) -> list[C4DTag]:
 		if dlgTags := self._getDialog('tags'):
 			return dlgTags._getTags()
 		return list()
+	
 	def GetTag(self, uuid: str) -> C4DTag | None:
 		if dlgTags := self._getDialog('tags'):
 			return dlgTags._getTag(uuid)
