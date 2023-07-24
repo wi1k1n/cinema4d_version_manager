@@ -1,6 +1,6 @@
 import os, json, typing
 from PyQt5.QtCore import QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings
-from PyQt5.QtGui import QFont, QDesktopServices, QIntValidator, QDragEnterEvent, QDropEvent
+from PyQt5.QtGui import QFont, QDesktopServices, QIntValidator, QDragEnterEvent, QDropEvent, QKeySequence
 from PyQt5.QtWidgets import (
 	QLabel,
 	QMainWindow,
@@ -19,7 +19,8 @@ from PyQt5.QtWidgets import (
 	QCheckBox,
 	QSlider,
 	QSizePolicy,
-	QGroupBox
+	QGroupBox,
+	QShortcut
 )
 
 from version import *
@@ -205,6 +206,7 @@ class PreferencesWindow(QMainWindow):
 		return prefEntriesWidget
 
 	def _createPrefPaths(self):
+		# TODO: please refactor this mess! Should be abstracted away into a separate 'SearchPathsListWidget' class to keep mess outside!
 		self.pathsList.setDragDropMode(QAbstractItemView.InternalMove)
 
 		def _addSearchPath(path: str):
@@ -238,20 +240,25 @@ class PreferencesWindow(QMainWindow):
 			buttons['remove'].setEnabled(self.pathsList.currentRow() >= 0)
 		updateButtonsEnabled()
 
+		def _deleteSelectedRow():
+			if self.pathsList.currentRow() < 0:
+				return
+			self.pathsList.takeItem(self.pathsList.currentRow())
+			updateButtonsEnabled()
+
+		delShortcut: QShortcut = QShortcut(QKeySequence(Qt.Key_Delete), self.pathsList)
+		delShortcut.activated.connect(_deleteSelectedRow)
+
+
 		self.pathsList.itemSelectionChanged.connect(lambda: updateButtonsEnabled())
 		self.pathsList.doubleClicked.connect(lambda: OpenFolderInDefaultExplorer(self.pathsList.currentItem().text()))
 
 		def btnAddClicked(evt):
 			filePath: str = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
 			_addSearchPath(filePath)
-		buttons['add'].clicked.connect(btnAddClicked)
 
-		def btnRemoveClicked(evt):
-			if self.pathsList.currentRow() < 0:
-				return
-			self.pathsList.takeItem(self.pathsList.currentRow())
-			updateButtonsEnabled()
-		buttons['remove'].clicked.connect(btnRemoveClicked)
+		buttons['add'].clicked.connect(btnAddClicked)
+		buttons['remove'].clicked.connect(lambda evt: _deleteSelectedRow())
 		
 		buttonsLayout = QHBoxLayout()
 		for btn in buttons.values():
