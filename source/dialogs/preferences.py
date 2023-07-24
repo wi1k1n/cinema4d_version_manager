@@ -179,7 +179,18 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout: QFormLayout = QFormLayout()
 		groupTiles.setLayout(grpTilesLayout)
 		
-		grpTilesLayout.addRow(QCheckBox('Use Ronald\'s icon set'))
+		cbC4DIcon: QCheckBox = QCheckBox('Show C4D icon')
+		cbC4DIconRonalds: QCheckBox = QCheckBox('Use Ronald\'s icon set')
+
+		def ronaldsEnabledHandler(evt):
+			isChecked: bool = cbC4DIcon.isChecked()
+			cbC4DIconRonalds.setEnabled(isChecked)
+			if not isChecked:
+				cbC4DIconRonalds.setChecked(False)
+		cbC4DIcon.stateChanged.connect(ronaldsEnabledHandler)
+		
+		grpTilesLayout.addRow(cbC4DIcon)
+		grpTilesLayout.addRow(cbC4DIconRonalds)
 		grpTilesLayout.addRow(QCheckBox('Trim C4D version from folder name'))
 		grpTilesLayout.addRow(QCheckBox('Show timestamp'))
 
