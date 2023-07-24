@@ -2,7 +2,7 @@ import sys, os, typing, datetime as dt, json
 from subprocess import Popen, PIPE
 from PyQt5 import QtCore, QtGui
 
-from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess, QRect, QPoint
+from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess, QRect, QPoint, QPropertyAnimation
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent, QPaintEvent, QPainter, QColor, QBrush, QPen
 from PyQt5.QtWidgets import (
 	QApplication,
@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (
 	QStatusBar,
 	QProxyStyle,
 	QInputDialog,
-	QPlainTextEdit
+	QPlainTextEdit,
 )
 
 # import qrc_resources
@@ -200,9 +200,6 @@ class C4DTile(QFrame):
 		dlg.setMinimumSize(400, 200)
 		if dlg.exec_() == QDialog.Accepted:
 			self._setNote(dlg.GetNoteText())
-		# text, ok = dlg.getText(self, 'Text Input Dialog', 'Note:')
-		# if ok:
-		# 	print(text)
 
 	def _createTooltipMenuString(self):
 		ci: C4DCacheInfo = self.GetCacheInfo()
@@ -236,7 +233,7 @@ class C4DTile(QFrame):
 		menu.addAction(self.actionRunC4D)
 		menu.addAction(self.actionRunC4DConsole)
 		menu.addSeparator()
-		menu.addAction(self.actionEditNote)
+		menu.addAction(self.actionOpenFolder)
 		if self.actionOpenFolderPrefs:
 			menu.addAction(self.actionOpenFolderPrefs)
 		menu.addSeparator()
