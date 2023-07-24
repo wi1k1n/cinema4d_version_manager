@@ -266,6 +266,7 @@ class MainWindow(QMainWindow):
 			# c4dGroups.append(C4DTileGroup([i + offs for i in range(len(c4dsDict))], path))
 			c4dEntries += [v for v in c4dsDict.values()]
 		# self.c4dTabTiles.updateTiles([c for c in c4dEntries if c.directory == 'C:/Program Files\\Maxon Cinema 4D 2023'], c4dGroups)
+		c4dEntries.sort(key=lambda x: GetFolderTimestampCreated(x.GetPathFolderRoot()))
 		self.c4dTabTiles.updateTiles(c4dEntries, c4dGroups)
 	
 	def GetTags(self) -> list[C4DTag]:
