@@ -1,4 +1,4 @@
-import os, re, datetime as dt, uuid
+import os, re, datetime as dt, uuid, json
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
@@ -32,7 +32,25 @@ def SafeCast(val, to_type, default=None):
 	except (ValueError, TypeError):
 		return default
 
-# Gathers information about cinema
+# Extra information binded to the existing c4d package
+class C4DCacheInfo:
+	def __init__(self, tagUuids: list[str] = [], note: str = '') -> None:
+		self.tagUuids: list[str] = tagUuids
+		self.note: str = note
+	
+	def ToJSON(self) -> dict:
+		return {
+			'tagUuids': self.tagUuids,
+			'note': self.note,
+		}
+	
+	@staticmethod
+	def FromJSON(jsonStr: str):
+		tagUuids: list[str] = jsonStr['tagUuids'] if 'tagUuids' in jsonStr else ''
+		note: str = jsonStr['note'] if 'note' in jsonStr else ''
+		return C4DCacheInfo(tagUuids, note)
+
+# Information about cinema that can be extracted from filesystem
 class C4DInfo:
 	def __init__(self, dir: str, ver: list[str], dirPrefs: str | None = None) -> None:
 		self.version: list[str] = ver

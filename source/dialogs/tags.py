@@ -47,13 +47,12 @@ class C4DTag:
 			print(f'ERROR Loading C4DTag: {name=} | {uuid=}')
 		return C4DTag(name, uuid, color)
 
-	def ToJSON(self) -> str:
-		ret: dict = {
+	def ToJSON(self) -> dict:
+		return {
 			'uuid': self.uuid,
 			'name': self.name,
 			'color': self.color.name() if self.color else None,
 		}
-		return ret
 
 class TagWidget(BubbleWidget):
 	tagEditRequestedSignal = pyqtSignal()
@@ -188,7 +187,6 @@ class ManageTagDialog(QDialog):
 		return self.isEditing
 
 	def _onAccepted(self):
-		# print('Accepted')
 		self.accept()
 		
 	def _onRejected(self):
@@ -202,6 +200,7 @@ class TagsWindow(QDockWidget):
 	TAGS_FILENAME = 'tags.json'
 
 	tagEditedSignal = pyqtSignal(C4DTag)
+	tagRemovedSignal = pyqtSignal(C4DTag)
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -289,16 +288,15 @@ class TagsWindow(QDockWidget):
 	def _removeTag(self, tag: C4DTag): # TODO: sometimes gives error, likely due to poor C4DTag equality test
 		tagIdx: int = self._findTagIndex(tag)
 		if tagIdx < 0: return print('Doesn\'t exist!')
-		print('remove:', tag.name)
 		self.tagWidgets[tagIdx].deleteLater()
 		del self.tagWidgets[tagIdx]
+		self.tagRemovedSignal.emit(tag)
 		
 	def _moveTag(self, tag: C4DTag, dir: int):
 		tagIdx: int = self._findTagIndex(tag)
 		if tagIdx < 0: return print('Doesn\'t exist!')
 		if tagIdx == 0 and dir < 0 or tagIdx == len(self.tagWidgets) - 1 and dir > 0:
 			return
-		print('move tag', tag.name, 'forward' if dir > 0 else 'back')
 		items: list[QLayoutItem] = [self.tagsFlowLayout.takeAt(0) for i in range(self.tagsFlowLayout.count())]
 		items[tagIdx], items[tagIdx + dir] = items[tagIdx + dir], items[tagIdx]
 		for item in items:

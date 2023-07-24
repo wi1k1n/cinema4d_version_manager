@@ -68,17 +68,10 @@ class MainWindow(QMainWindow):
 	"""Main Window."""
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
-		
-		# self.c4dTags: list[C4DTag] = [
-		# 	C4DTag('Favorite'),
-		# 	C4DTag('Customer'),
-		# 	C4DTag('Package'),
-		# ]
 
 		self.setWindowTitle("C4D Selector")
 		self.resize(1420, 800)
 		self.setMinimumSize(350, 250)
-		# self.showEvent = self._onShowed
 
 		self.dialogs = {
 			'preferences': PreferencesWindow(),
@@ -110,6 +103,7 @@ class MainWindow(QMainWindow):
 		self._connectActions()
 
 		self.dialogs['tags'].tagEditedSignal.connect(lambda tag: self.c4dTabTiles._rebuildWidget())
+		self.dialogs['tags'].tagRemovedSignal.connect(lambda tag: self.c4dTabTiles._tagRemoveFromAll(tag))
 
 		self.rescan()
 		self.c4dTabTiles.LoadCache()

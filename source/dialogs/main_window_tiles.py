@@ -22,7 +22,9 @@ from PyQt5.QtWidgets import (
 	QGroupBox,
 	QTreeWidget, QTreeWidgetItem,
 	QStatusBar,
-	QProxyStyle
+	QProxyStyle,
+	QInputDialog,
+	QPlainTextEdit
 )
 
 # import qrc_resources
@@ -58,6 +60,25 @@ class C4DTile2(QWidget):
 		p.drawText(self.rect(), Qt.AlignLeft | Qt.AlignVCenter, 'Hello world!')
 
 		return super().paintEvent(evt)
+
+class NoteEditorDialog(QDialog):
+	def __init__(self, title: str = 'Edit text', initialText: str = '', parent: QWidget | None = None) -> None:
+		super().__init__(parent)
+		self.setWindowTitle(title)
+		
+		self.editNote: QPlainTextEdit = QPlainTextEdit(initialText, self)
+		buttons: QDialogButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		buttons.accepted.connect(self.accept)
+		buttons.rejected.connect(self.close)
+
+		formLayout = QFormLayout()
+		formLayout.addWidget(self.editNote)
+		formLayout.addWidget(buttons)
+
+		self.setLayout(formLayout)
+	
+	def GetNoteText(self) -> str:
+		return self.editNote.toPlainText()
 
 class C4DTile(QFrame):
 	# https://forum.qt.io/topic/90403/show-tooltip-immediatly/6
@@ -127,7 +148,7 @@ class C4DTile(QFrame):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
 		tagsWidget: QWidget = QWidget()
 		tagsWidget.setLayout(tagsLayout)
-		tagsDict: dict = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
+		tagsDict: dict = self.parentTilesWidget.GetTagBindings() if self.parentTilesWidget else None
 		if tagsDict and self.c4d.directory in tagsDict:
 			uuids: list[str] = tagsDict[self.c4d.directory]
 			for uuid in uuids:
@@ -167,10 +188,29 @@ class C4DTile(QFrame):
 		self.p.setStandardOutputFile(QProcess.nullDevice())
 		self.p.setProcessState(QProcess.NotRunning)
 
+	def _setNote(self, text: str):
+		ci: C4DCacheInfo = self.GetCacheInfo()
+		if ci is None: return
+		ci.note = text
+		self.setToolTip(self._createTooltipMenuString())
+
+	def _openNoteEditor(self):
+		ci: C4DCacheInfo = self.GetCacheInfo()
+		dlg: NoteEditorDialog = NoteEditorDialog(f'Edit note for {self.c4d.GetNameFolderRoot()}', ci.note if ci else '', self)
+		dlg.setMinimumSize(400, 200)
+		if dlg.exec_() == QDialog.Accepted:
+			self._setNote(dlg.GetNoteText())
+		# text, ok = dlg.getText(self, 'Text Input Dialog', 'Note:')
+		# if ok:
+		# 	print(text)
+
 	def _createTooltipMenuString(self):
+		ci: C4DCacheInfo = self.GetCacheInfo()
+		c4dNote: str = ci.note if ci else ''
 		tDt: dt.datetime = GetFolderTimestampCreated(self.c4d.GetPathFolderRoot())
 		return f'{self.c4d.GetPathFolderRoot()}'\
-				f'\nCreated {tDt.strftime("%d/%m/%Y %H:%M")}'
+			 + f'\nCreated {tDt.strftime("%d/%m/%Y %H:%M")}'\
+			+ (f'\nNote: {c4dNote}' if c4dNote else '')
 	
 	def _addActions(self):
 		self.actionRunC4D = QAction('Run C4D')
@@ -186,6 +226,9 @@ class C4DTile(QFrame):
 		if self.c4d.GetPathFolderPrefs():
 			self.actionOpenFolderPrefs = QAction('Open folder prefs')
 			self.actionOpenFolderPrefs.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderPrefs()))
+			
+		self.actionEditNote = QAction('Edit note')
+		self.actionEditNote.triggered.connect(self._openNoteEditor)
 
 	def _contextMenuRequested(self):
 		menu = QtWidgets.QMenu()
@@ -193,9 +236,11 @@ class C4DTile(QFrame):
 		menu.addAction(self.actionRunC4D)
 		menu.addAction(self.actionRunC4DConsole)
 		menu.addSeparator()
-		menu.addAction(self.actionOpenFolder)
+		menu.addAction(self.actionEditNote)
 		if self.actionOpenFolderPrefs:
 			menu.addAction(self.actionOpenFolderPrefs)
+		menu.addSeparator()
+		menu.addAction(self.actionEditNote)
 
 		menu.exec_(QtGui.QCursor.pos())
 
@@ -223,11 +268,9 @@ class C4DTile(QFrame):
 	# 	return super().event(evt)
 
 	def _bindTag(self, uuid: str, placeAsFirst: bool = False):
-		tagsDict: dict[str, list[str]] = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
-		if not tagsDict or self.c4d.directory not in tagsDict:
-			return
-		uuidsList: list[str] = tagsDict[self.c4d.directory]
-
+		c4dCacheInfo: C4DCacheInfo = self.GetCacheInfo() if self.parentTilesWidget else None
+		if c4dCacheInfo is None: return
+		uuidsList: list[str] = c4dCacheInfo.tagUuids.copy() # TODO: strange bug here, when chaning one list changes tag list for all c4ds
 		try:
 			foundIdx: int = uuidsList.index(uuid)
 			if not placeAsFirst or foundIdx == 0: # nothing else is needed, exiting
@@ -237,19 +280,23 @@ class C4DTile(QFrame):
 			pass
 
 		uuidsList.insert(0 if placeAsFirst else len(uuidsList), uuid)
+		c4dCacheInfo.tagUuids = uuidsList
 		self._rebuildTagsWidget() # need to rebuild tags widget
 		
 	def _unbindTag(self, uuid: str):
-		tagsDict: dict[str, list[str]] = self.parentTilesWidget.c4dTags if self.parentTilesWidget else None
-		if not tagsDict or self.c4d.directory not in tagsDict:
-			return
-		uuidsList: list[str] = tagsDict[self.c4d.directory]
+		c4dCacheInfo: C4DCacheInfo = self.GetCacheInfo() if self.parentTilesWidget else None
+		if c4dCacheInfo is None: return
+		uuidsList: list[str] = c4dCacheInfo.tagUuids.copy() # TODO: strange bug here, when chaning one list changes tag list for all c4ds
 		try:
 			foundIdx: int = uuidsList.index(uuid)
 			del uuidsList[foundIdx]
 		except:
 			return
+		c4dCacheInfo.tagUuids = uuidsList
 		self._rebuildTagsWidget() # need to rebuild tags widget
+	
+	def GetCacheInfo(self) -> C4DCacheInfo | None:
+		return self.parentTilesWidget.GetCacheInfo(self.c4d.directory) if self.parentTilesWidget else None
 
 	def _rebuildTagsWidget(self):
 		tagsWidgetNew = self._createTagsSectionWidget()
@@ -283,9 +330,9 @@ class C4DTilesWidget(QScrollArea):
 		self.mainWindow = parent
 		super().__init__(parent)
 
-		self.c4dEntries: list[C4DInfo] = list()
-		self.c4dGroups: list[C4DTileGroup] = [C4DTileGroup()]
-		self.c4dTags: dict[str, list[str]] = dict() # mapping from c4d_directory to a list of uuids to the tags
+		self.c4dEntries: list[C4DInfo] = list() 				# 
+		self.c4dGroups: list[C4DTileGroup] = [C4DTileGroup()] 	# for visual purposes
+		self.c4dCacheInfo: dict[str, C4DCacheInfo] = dict() 	# mapping from c4d_directory to a C4DInfoCache
 
 		self.setWidgetResizable(True)
 	
@@ -298,6 +345,12 @@ class C4DTilesWidget(QScrollArea):
 		if dlg := self.mainWindow:
 			return dlg.GetTag(uuid)
 		return None
+	
+	def GetCacheInfo(self, c4dDir: str) -> C4DCacheInfo | None:
+		return self.c4dCacheInfo[c4dDir] if c4dDir in self.c4dCacheInfo else None
+	
+	def GetTagBindings(self) -> dict[str, list[str]]:
+		return {c4d: ci.tagUuids for c4d, ci in self.c4dCacheInfo.items()}
 	
 	def updateTiles(self, c4ds: list[C4DInfo], grouping: list[C4DTileGroup] | None = None):
 		self.c4dEntries = c4ds
@@ -323,9 +376,8 @@ class C4DTilesWidget(QScrollArea):
 			if not len(indices): indices = [i for i in range(len(self.c4dEntries))]
 			for idx in indices:
 				c4dinfo: C4DInfo = self.c4dEntries[idx]
-				# self.c4dTags[c4dinfo.directory] = [t.uuid for t in self.GetTags()]
-				if c4dinfo.directory not in self.c4dTags:
-					self.c4dTags[c4dinfo.directory] = list()
+				if c4dinfo.directory not in self.c4dCacheInfo:
+					self.c4dCacheInfo[c4dinfo.directory] = C4DCacheInfo()
 				tileWidget: C4DTile = C4DTile(c4dinfo, self)
 				flowLayout.addWidget(tileWidget)
 
@@ -340,6 +392,12 @@ class C4DTilesWidget(QScrollArea):
 		
 		groupsLayout.addStretch()
 	
+	def _tagRemoveFromAll(self, tag: C4DTag):
+		for c4dCacheInfo in self.c4dCacheInfo.values():
+			if tag.uuid in c4dCacheInfo.tagUuids:
+				c4dCacheInfo.tagUuids.remove(tag.uuid)
+		self._rebuildWidget()
+	
 	def SaveCache(self):
 		saveFilePath: str = self.GetCacheSavePath()
 
@@ -350,10 +408,9 @@ class C4DTilesWidget(QScrollArea):
 		cache: dict[str, dict] = storeDict['cache']
 		# first create new dict for all stored c4ds
 		for c4dinfo in self.c4dEntries:
-			cache[c4dinfo.directory] = dict()
-			c4dDict: dict = cache[c4dinfo.directory]
-			# list of tag uuids that are binded to current c4d
-			c4dDict['tagUuids']: list[str] = self.c4dTags[c4dinfo.directory] if c4dinfo.directory in self.c4dTags else list()
+			if c4dinfo.directory not in self.c4dCacheInfo:
+				self.c4dCacheInfo[c4dinfo.directory] = C4DCacheInfo()
+			cache[c4dinfo.directory] = self.c4dCacheInfo[c4dinfo.directory].ToJSON()
 
 		with open(saveFilePath, 'w') as fp:
 			json.dump(storeDict, fp)
@@ -375,7 +432,7 @@ class C4DTilesWidget(QScrollArea):
 					if c4d not in knownC4DPaths:
 						print(f'Cache contains entry that is not found anymore! C4D Path: {c4d}')
 						continue
-					self.c4dTags[c4d]: list[str] = c4dDict['tagUuids'] if 'tagUuids' in c4dDict else list()
+					self.c4dCacheInfo[c4d]: C4DCacheInfo = C4DCacheInfo.FromJSON(c4dDict) if 'tagUuids' in c4dDict else C4DCacheInfo()
 		self._rebuildWidget()
 
 	

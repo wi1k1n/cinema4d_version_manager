@@ -2,7 +2,7 @@ import sys, random, os
 from functools import partial
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QSplashScreen
 
 import res.qrc_resources
 from dialogs.main_window import MainWindow, TestMainWindow
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 		if reason != QSystemTrayIcon.ActivationReason.Context and win.isHidden():
 			win.show()
 			win.activateWindow()
-			win.restoreState()
+			# win.restoreState()
 	tray.activated.connect(trayActivated)
 	
 	# # https://stackoverflow.com/a/52617714

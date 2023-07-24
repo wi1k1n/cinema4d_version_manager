@@ -38,7 +38,7 @@ class PreferencesWindow(QMainWindow):
 		super().__init__(parent)
 
 		self.setWindowTitle("Preferences")
-		self.setWindowFlags(self.windowFlags() & Qt.WindowCloseButtonHint)
+		self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint) # | Qt.WindowStaysOnTopHint) # https://pythonprogramminglanguage.com/pyqt5-window-flags/
 		self.resize(400, 400)
 
 		self._initUI()
