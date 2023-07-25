@@ -146,6 +146,11 @@ class MainWindow(QMainWindow):
 		self.actionTags = QAction("&Tags", self)
 		self.actionTags.setShortcut("Ctrl+T")
 
+		self.actionFoldAll = QAction("&Fold all", self)
+		self.actionFoldAll.setShortcut("Ctrl+G,Ctrl+G")
+
+		self.actionUnfoldAll = QAction("&Unfold all", self)
+
 		self._createGroupActions()
 		
 		self.actionSave.triggered.connect(self._storeData)
@@ -164,7 +169,7 @@ class MainWindow(QMainWindow):
 	def _createGroupActions(self):
 		actionsGroupingDict = { # key -> (show_txt, QColor, Shortcut)
 			'none': ('&No grouping', None, 'Ctrl+G,Ctrl+N'),
-			'paths': ('Group by search &paths', None, 'Ctrl+G,Ctrl+P'),
+			'paths': ('Group by search &folders', None, 'Ctrl+G,Ctrl+F'),
 			'version': ('Group by &version', None, 'Ctrl+G,Ctrl+V'),
 			'tag': ('Group by &tag', None, 'Ctrl+G,Ctrl+T'),
 		}
@@ -208,6 +213,9 @@ class MainWindow(QMainWindow):
 		editMenu.addAction(self.actionTags)
 		
 		viewMenu = menuBar.addMenu("&View")
+		viewMenu.addAction(self.actionFoldAll)
+		viewMenu.addAction(self.actionUnfoldAll)
+		viewMenu.addSeparator()
 		for k, action in self.actionsGrouping.items():
 			viewMenu.addAction(action)
 

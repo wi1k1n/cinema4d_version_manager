@@ -209,6 +209,7 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout.addRow(QCheckBox('Trim C4D version from folder name'))
 		grpTilesLayout.addRow(QCheckBox('Show timestamp'))
 		grpTilesLayout.addRow(QCheckBox('Unused folded group'))
+		grpTilesLayout.addRow(QCheckBox('Show note on tile'))
 
 		##### Main layout
 		mainLayout: QVBoxLayout = QVBoxLayout()
