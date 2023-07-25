@@ -152,15 +152,21 @@ def GetC4DInfoFromFolder(folderPath: str) -> C4DInfo | None:
 	return C4DInfo(folderPath, versionStringsList, prefsFolder)
 
 # Traverses directory until maxDepth, returns dict: path -> c4d_version
-def FindCinemaPackagesInFolder(path, maxDepth = 3) -> dict[str, C4DInfo]:
+def FindCinemaPackagesInFolder(path, maxDepth = 2) -> dict[str, C4DInfo]:
 	c4dRootInfo: C4DInfo | None = GetC4DInfoFromFolder(path)
 	if c4dRootInfo:
 		return {path: c4dRootInfo}
 
+	def getDirList(pathDir: str) -> list[str]:
+		try:
+			dirList: list[str] = [os.path.join(pathDir, d) for d in os.listdir(pathDir)]
+			return list(filter(lambda d: os.path.isdir(d), dirList))
+		except:
+			pass
+		return list()
+	
 	ret: dict[str, C4DInfo] = dict()
-
-	dirs: set[str] = set()
-	dirs.update([f.path for f in os.scandir(path) if f.is_dir()])
+	dirs: set[str] = set(getDirList(path))
 	currentDepth: int = 0
 	while len(dirs) and currentDepth < maxDepth:
 		newDirs: list[str] = []
@@ -169,7 +175,7 @@ def FindCinemaPackagesInFolder(path, maxDepth = 3) -> dict[str, C4DInfo]:
 			if c4dInfo:
 				ret[p] = c4dInfo
 				continue
-			newDirs.append(p)
+			newDirs += getDirList(p)
 		dirs = newDirs
 		currentDepth += 1
 	return ret

@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
 				for sp in searchPaths:
 					if c4dEntry.directory.startswith(sp):
 						idxMap[sp].append(c4dIdx)
-			availablePaths: list[str] = [k for k in idxMap.keys()]
+			availablePaths: list[str] = [k for k in idxMap.keys() if idxMap[k]]
 			availablePaths.sort(reverse=not isAscending)
 			c4dGroups = [C4DTileGroup(idxMap[path], path) for path in availablePaths]
 

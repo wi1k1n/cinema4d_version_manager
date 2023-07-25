@@ -151,9 +151,9 @@ class PreferencesWindow(QMainWindow):
 		# Search depth slider
 		searchPathsDepthSlider: QSlider = QSlider(Qt.Horizontal)
 		searchPathsDepthSlider.setMinimum(1)
-		searchPathsDepthSlider.setMaximum(10)
+		searchPathsDepthSlider.setMaximum(5)
 		searchPathsDepthSlider.setSingleStep(1)
-		searchPathsDepthSlider.setValue(3)
+		searchPathsDepthSlider.setValue(2)
 		searchPathsDepthSlider.setTickPosition(QSlider.TicksBelow)
 		searchPathsDepthSlider.setTickInterval(1)
 		searchPathsDepthSlider.setDisabled(True)
