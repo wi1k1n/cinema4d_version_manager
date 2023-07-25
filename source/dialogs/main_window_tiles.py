@@ -1,7 +1,8 @@
 import sys, os, typing, datetime as dt, json
 from subprocess import Popen, PIPE
-from PyQt5 import QtCore, QtGui
+from functools import partial
 
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess, QRect, QPoint, QPropertyAnimation
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent, QPaintEvent, QPainter, QColor, QBrush, QPen
 from PyQt5.QtWidgets import (
@@ -382,7 +383,7 @@ class C4DTilesWidget(QScrollArea):
 
 		# Populate
 		for grp in self.c4dGroups:
-			flowLayout: FlowLayout = FlowLayout()
+			innerGroupLayout: FlowLayout = FlowLayout()
 			indices = grp.indices
 			if not len(indices): indices = [i for i in range(len(self.c4dEntries))]
 			for idx in indices:
@@ -390,17 +391,31 @@ class C4DTilesWidget(QScrollArea):
 				if c4dinfo.directory not in self.c4dCacheInfo:
 					self.c4dCacheInfo[c4dinfo.directory] = C4DCacheInfo()
 				tileWidget: C4DTile = C4DTile(c4dinfo, self)
-				flowLayout.addWidget(tileWidget)
+				innerGroupLayout.addWidget(tileWidget)
+
+			grouplikeWidget: QWidget
+			
+			# 			main widget 							either group or dummy container 				container for hiding content 			c4d tile
+			# (QWidget)centralWidget{QVBoxLayout} => (QWidget | QGroupBox)grouplikeLayout{QHBoxLayout} => (QWidget)innerGroupWidget{FlowLayout} => (C4DTile)tileWidget
+			innerGroupWidget: QWidget = QWidget()
+			innerGroupWidget.setLayout(innerGroupLayout)
 
 			createGroup: bool = len(grp.name)
-			curWidget: QWidget
 			if createGroup:
-				curWidget = QGroupBox(grp.name)
+				grouplikeWidget = QGroupBox(grp.name)
+				grouplikeWidget.setCheckable(True) # https://stackoverflow.com/questions/55977559/changing-qgroupbox-checkbox-visual-to-an-expander
+				def changeVisibility(containerWidget: QWidget, setVisible: bool):
+					containerWidget.setVisible(setVisible)
+				grouplikeWidget.clicked.connect(partial(changeVisibility, innerGroupWidget))
 			else:
-				curWidget = QWidget()
-			curWidget.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
-			curWidget.setLayout(flowLayout)
-			groupsLayout.addWidget(curWidget)
+				grouplikeWidget = QWidget()
+
+			grouplikeLayout: QHBoxLayout = QHBoxLayout()
+			grouplikeWidget.setLayout(grouplikeLayout)
+			grouplikeLayout.addWidget(innerGroupWidget)
+
+			grouplikeWidget.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
+			groupsLayout.addWidget(grouplikeWidget)
 		
 		groupsLayout.addStretch()
 	
