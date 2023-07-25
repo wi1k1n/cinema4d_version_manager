@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
 	QProxyStyle,
 	QInputDialog,
 	QPlainTextEdit,
+	QShortcut
 )
 
 # import qrc_resources
@@ -76,9 +77,19 @@ class NoteEditorDialog(QDialog):
 		formLayout.addWidget(buttons)
 
 		self.setLayout(formLayout)
+
+		self.editNote.installEventFilter(self)
 	
 	def GetNoteText(self) -> str:
 		return self.editNote.toPlainText()
+	
+	def eventFilter(self, obj: QObject, evt: QEvent) -> bool:
+		if evt.type() in (evt.Type.KeyPress, evt.Type.ShortcutOverride):
+			if evt.key() == Qt.Key_Return and evt.modifiers() == Qt.KeyboardModifier.ControlModifier:
+				evt.ignore()
+				self.accept()
+				return True
+		return super().eventFilter(obj, evt)
 
 class C4DTile(QFrame):
 	# https://forum.qt.io/topic/90403/show-tooltip-immediatly/6
@@ -387,6 +398,7 @@ class C4DTilesWidget(QScrollArea):
 				curWidget = QGroupBox(grp.name)
 			else:
 				curWidget = QWidget()
+			curWidget.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
 			curWidget.setLayout(flowLayout)
 			groupsLayout.addWidget(curWidget)
 		
