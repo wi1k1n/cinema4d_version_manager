@@ -61,7 +61,7 @@ class TagWidget(BubbleWidget):
 	def __init__(self, tag: C4DTag):
 		super().__init__(tag.name, tag.color)
 		
-		self.setFont(QtGui.QFont('SblHebrew', 18))
+		self.setFont(QtGui.QFont(APPLICATION_FONT_FAMILY, 18))
 		self.SetTag(tag)
 		# self.mousePressEvent = self._onMousePress
 		

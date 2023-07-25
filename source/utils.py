@@ -8,6 +8,8 @@ C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
 
 C4DTAG_MIMETYPE = 'text/c4dtaguuid'
 
+APPLICATION_FONT_FAMILY = 'SblHebrew'
+
 def GenerateUUID() -> str:
 	return str(uuid.uuid4())
 

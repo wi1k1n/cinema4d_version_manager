@@ -121,13 +121,13 @@ class C4DTile(QFrame):
 		self.picLabel.setCursor(QCursor(Qt.PointingHandCursor))
 
 		versLabel: QLabel = QLabel(self.c4d.GetVersionString())
-		versLabel.setFont(QFont('SblHebrew', 12))
+		versLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 12))
 		versLabel.setAlignment(Qt.AlignHCenter)
 
 		folderLabel: QLabel = QLabel(self.c4d.GetNameFolderRoot()[:20])
 		folderLabel.setAlignment(Qt.AlignHCenter)
 		# folderLabel.setWordWrap(True)
-		folderLabel.setFont(QFont('SblHebrew', 10))
+		folderLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
 
 		self.tagsWidget: QWidget = self._createTagsSectionWidget()
 

@@ -160,18 +160,19 @@ class MainWindow(QMainWindow):
 		# self.newAction.setToolTip(newTip)
 
 	def _createGroupActions(self):
-		actionsGroupingDict = { # key -> (show_txt, QColor)
-			'none': ('&No grouping', None),
-			'paths': ('Group by &search paths', None),
-			'version': ('Group by &version', None),
-			'tag': ('Group by &tag', None),
+		actionsGroupingDict = { # key -> (show_txt, QColor, Shortcut)
+			'none': ('&No grouping', None, 'Ctrl+G,N'),
+			'paths': ('Group by search &paths', None, 'Ctrl+G,P'),
+			'version': ('Group by &version', None, 'Ctrl+G,V'),
+			'tag': ('Group by &tag', None, 'Ctrl+G,T'),
 		}
 		# for tag in self.GetTags():
 		# 	actionsGroupingDict[f'tag:{tag.uuid}'] = (f'Group by tag \'{tag.name}\'', tag.color)
 
 		def createCheckableAction(key: str) -> QAction:
-			txt, color = actionsGroupingDict[key]
+			txt, color, shortcut = actionsGroupingDict[key]
 			action: QAction = QAction(txt)
+			action.setShortcut(shortcut)
 			action.triggered.connect(partial(self._changeGrouping, key))
 			# if color:
 			# 	pixmap: QPixmap = QPixmap(20, 20)
@@ -265,7 +266,8 @@ class MainWindow(QMainWindow):
 		self._showActivateDialog('preferences')
 
 	def about(self):
-		self._showActivateDialog('about')
+		if dlg := self._getDialog('about'):
+			dlg.exec_()
 
 	def openTagsWindow(self):
 		KEY = 'tags'
@@ -320,7 +322,7 @@ class MainWindow(QMainWindow):
 				if vMaj not in idxMap: idxMap[vMaj] = list()
 				idxMap[vMaj].append(c4dIdx)
 			c4dGroups = [C4DTileGroup(indices, path) for path, indices in idxMap.items()]
-			
+
 		elif groupingKey == 'tag':
 			c4dTagBinding: dict[str, list[str]] = self.c4dTabTiles.GetTagBindings()
 			idxMap: dict[str, list[int]] = dict()
