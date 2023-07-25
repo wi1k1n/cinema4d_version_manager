@@ -66,6 +66,8 @@ class TestMainWindow(QMainWindow):
 
 
 class MainWindow(QMainWindow):
+	GROUPING_MARK_PREFIX: str = '► '
+
 	"""Main Window."""
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
@@ -101,7 +103,6 @@ class MainWindow(QMainWindow):
 		self._createToolBars()
 		self._createContextMenu()
 		self._createStatusBar()
-		self._connectActions()
 
 		self.dialogs['tags'].tagEditedSignal.connect(lambda tag: self.c4dTabTiles._rebuildWidget())
 		self.dialogs['tags'].tagRemovedSignal.connect(lambda tag: self.c4dTabTiles._tagRemoveFromAll(tag))
@@ -135,13 +136,23 @@ class MainWindow(QMainWindow):
 		self.actionExit = QAction("&Exit", self)
 		self.actionAbout = QAction("&About", self)
 		
-		self.actionRescan = QAction("&Rescan", self)
-		self.actionRescan.setShortcut(QKeySequence.Refresh)
+		self.actionRefresh = QAction("&Refresh", self)
+		self.actionRefresh.setShortcut(QKeySequence.Refresh)
+		self.actionRescan = QAction("Re&scan", self)
+		self.actionRescan.setShortcut("Ctrl+F5")
 
 		self.actionTags = QAction("&Tags", self)
 		self.actionTags.setShortcut("Ctrl+T")
 
 		self._createGroupActions()
+		
+		self.actionSave.triggered.connect(self._storeData)
+		self.actionPrefs.triggered.connect(self.openPreferences)
+		self.actionExit.triggered.connect(sys.exit)
+		self.actionAbout.triggered.connect(self.about)
+		self.actionRefresh.triggered.connect(self.updateTilesWidget)
+		self.actionRescan.triggered.connect(self.rescan)
+		self.actionTags.triggered.connect(self.openTagsWindow)
 		
 		# # Adding help tips
 		# newTip = "Create a new file"
@@ -153,21 +164,19 @@ class MainWindow(QMainWindow):
 			'none': ('&No grouping', None),
 			'paths': ('Group by &search paths', None),
 			'version': ('Group by &version', None),
-			'versionmaj': ('Group by version &major', None),
+			'tag': ('Group by &tag', None),
 		}
-		for tag in self.GetTags():
-			actionsGroupingDict[f'tag:{tag.name}'] = (f'Group by tag \'{tag.name}\'', tag.color)
+		# for tag in self.GetTags():
+		# 	actionsGroupingDict[f'tag:{tag.uuid}'] = (f'Group by tag \'{tag.name}\'', tag.color)
 
 		def createCheckableAction(key: str) -> QAction:
 			txt, color = actionsGroupingDict[key]
 			action: QAction = QAction(txt)
-			# action.setCheckable(True)
-			# action.setChecked(False)
 			action.triggered.connect(partial(self._changeGrouping, key))
-			if color:
-				pixmap: QPixmap = QPixmap(20, 20)
-				pixmap.fill(color) # TODO: add border
-				action.setIcon(QIcon(pixmap))
+			# if color:
+			# 	pixmap: QPixmap = QPixmap(20, 20)
+			# 	pixmap.fill(color) # TODO: add border
+			# 	action.setIcon(QIcon(pixmap))
 			return action
 
 		self.actionsGrouping: dict[str, QAction] = dict()
@@ -176,6 +185,7 @@ class MainWindow(QMainWindow):
 		
 		# default
 		self._changeGrouping('paths')
+		# self._changeGrouping('none')
 		
 	def _createMenuBar(self):
 		menuBar = self.menuBar()
@@ -189,6 +199,7 @@ class MainWindow(QMainWindow):
 		fileMenu.addAction(self.actionExit)
 		
 		editMenu = menuBar.addMenu("&Edit")
+		editMenu.addAction(self.actionRefresh)
 		editMenu.addAction(self.actionRescan)
 		editMenu.addSeparator()
 		editMenu.addAction(self.actionTags)
@@ -202,15 +213,21 @@ class MainWindow(QMainWindow):
 	
 	def _changeGrouping(self, groupingKey: str):
 		print('group by key:', groupingKey)
-		MARK_PREFIX: str = '► '
 		for k, action in self.actionsGrouping.items():
-			alreadyMarked: bool = action.text().startswith(MARK_PREFIX)
+			alreadyMarked: bool = action.text().startswith(MainWindow.GROUPING_MARK_PREFIX)
 			if k == groupingKey:
 				if not alreadyMarked:
-					action.setText(f'{MARK_PREFIX}{action.text()}')
+					action.setText(f'{MainWindow.GROUPING_MARK_PREFIX}{action.text()}')
 				continue
 			if alreadyMarked:
 				action.setText(action.text()[2:])
+		self.updateTilesWidget()
+	
+	def _getGrouping(self):
+		for k, action in self.actionsGrouping.items():
+			if action.text().startswith(MainWindow.GROUPING_MARK_PREFIX):
+				return k
+		return 'none'
 	
 	def _createToolBars(self):
 		# fileToolBar = self.addToolBar("File")
@@ -234,14 +251,6 @@ class MainWindow(QMainWindow):
 
 	def _createStatusBar(self):
 		pass
-	
-	def _connectActions(self):
-		self.actionSave.triggered.connect(self._storeData)
-		self.actionPrefs.triggered.connect(self.openPreferences)
-		self.actionExit.triggered.connect(sys.exit)
-		self.actionAbout.triggered.connect(self.about)
-		self.actionRescan.triggered.connect(self.rescan)
-		self.actionTags.triggered.connect(self.openTagsWindow)
 	
 	def _storeData(self):
 		# Tags
@@ -276,35 +285,60 @@ class MainWindow(QMainWindow):
 			return dlg
 		return None
 
-	# def populateOpenRecent(self):
-	#     # Step 1. Remove the old options from the menu
-	#     self.openRecentMenu.clear()
-	#     # Step 2. Dynamically create the actions
-	#     actions = []
-	#     filenames = [f"File-{n}" for n in range(5)]
-	#     for filename in filenames:
-	#         action = QAction(filename, self)
-	#         action.triggered.connect(partial(self.openRecentFile, filename))
-	#         actions.append(action)
-	#     # Step 3. Add the actions to the menu
-	#     self.openRecentMenu.addActions(actions)
-
 	def rescan(self):
 		dlg: PreferencesWindow | None = self._getDialog('preferences')
 		if not dlg: return print('ERROR: Preferences dialog wasn\'t found!')
-		
 		searchPaths: list[str] = dlg.GetPreference(PreferencesEntries.SearchPaths)
+
 		c4dEntries: list[C4DInfo] = list()
-		c4dGroups: list[C4DTileGroup] = list()
 		for path in searchPaths:
-			c4dsDict: dict[str, C4DInfo] | None = FindCinemaPackagesInFolder(path)
-			if c4dsDict is None:
-				continue
-			offs: int = len(c4dEntries)
-			# c4dGroups.append(C4DTileGroup([i + offs for i in range(len(c4dsDict))], path))
-			c4dEntries += [v for v in c4dsDict.values()]
-		# self.c4dTabTiles.updateTiles([c for c in c4dEntries if c.directory == 'C:/Program Files\\Maxon Cinema 4D 2023'], c4dGroups)
-		c4dEntries.sort(key=lambda x: GetFolderTimestampCreated(x.GetPathFolderRoot()))
+			if c4dsDict := FindCinemaPackagesInFolder(path):
+				c4dEntries += [v for v in c4dsDict.values()]
+			
+		self.updateTilesWidget(c4dEntries)
+	
+	def updateTilesWidget(self, newC4DEntries: list[C4DInfo] | None = None):
+		c4dEntries: list[C4DInfo] = newC4DEntries if newC4DEntries else self.c4dTabTiles.GetC4DEntries()
+
+		# Group first
+		c4dGroups: list[C4DTileGroup] = list()
+		groupingKey: str = self._getGrouping()
+		if groupingKey == 'paths':
+			searchPaths: list[str] = list()
+			if dlg := self._getDialog('preferences'): searchPaths = dlg.GetPreference(PreferencesEntries.SearchPaths)
+			idxMap: dict[str, list[int]] = {sp: list() for sp in searchPaths}
+			for c4dIdx, c4dEntry in enumerate(c4dEntries):
+				for sp in searchPaths:
+					if c4dEntry.directory.startswith(sp):
+						idxMap[sp].append(c4dIdx)
+			c4dGroups = [C4DTileGroup(indices, path) for path, indices in idxMap.items()]
+
+		elif groupingKey == 'version':
+			idxMap: dict[str, list[int]] = dict()
+			for c4dIdx, c4dEntry in enumerate(c4dEntries):
+				vMaj: str = c4dEntry.GetVersionMajor()
+				if vMaj not in idxMap: idxMap[vMaj] = list()
+				idxMap[vMaj].append(c4dIdx)
+			c4dGroups = [C4DTileGroup(indices, path) for path, indices in idxMap.items()]
+			
+		elif groupingKey == 'tag':
+			c4dTagBinding: dict[str, list[str]] = self.c4dTabTiles.GetTagBindings()
+			idxMap: dict[str, list[int]] = dict()
+			for c4dIdx, c4dEntry in enumerate(c4dEntries):
+				tagUuids: list[str] = c4dTagBinding[c4dEntry.directory]
+				if not len(tagUuids):
+					if '' not in idxMap: idxMap[''] = list()
+					idxMap[''].append(c4dIdx)
+				else:
+					for tagUuid in tagUuids:
+						if self.GetTag(tagUuid):
+							if tagUuid not in idxMap: idxMap[tagUuid] = list()
+							idxMap[tagUuid].append(c4dIdx)
+			c4dGroups = [C4DTileGroup(indices, self.GetTag(tagUuid).name if tagUuid else 'None') for tagUuid, indices in idxMap.items() if self.GetTag(tagUuid) or tagUuid == '']
+		
+		# Sort
+		# c4dEntries.sort(key=lambda x: GetFolderTimestampCreated(x.GetPathFolderRoot()))
+
 		self.c4dTabTiles.updateTiles(c4dEntries, c4dGroups)
 	
 	def GetTags(self) -> list[C4DTag]:
@@ -316,8 +350,6 @@ class MainWindow(QMainWindow):
 		if dlgTags := self._getDialog('tags'):
 			return dlgTags._getTag(uuid)
 		return None
-
-	# def _onShowed(self, evt):
 
 	def FirstRunHandler(self):
 		if self.openPreferencesFlag:

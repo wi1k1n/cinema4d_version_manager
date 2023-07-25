@@ -333,6 +333,9 @@ class C4DTilesWidget(QScrollArea):
 
 		self.setWidgetResizable(True)
 	
+	def GetC4DEntries(self) -> list[C4DInfo]:
+		return self.c4dEntries
+
 	def GetTags(self) -> list[C4DTag]:
 		if dlg := self.mainWindow:
 			return dlg.GetTags()

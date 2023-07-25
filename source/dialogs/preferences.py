@@ -145,10 +145,23 @@ class PreferencesWindow(QMainWindow):
 		self.contentStack.setCurrentIndex(self.categoriesWidget.currentRow())
 
 	def _createPrefGeneral(self):
+		cbRunOnStartup: QCheckBox = QCheckBox('&Run on Windows startup', self)
 		cbHideOnClose: QCheckBox = QCheckBox('&Hide on close', self)
+		
+		# Search depth slider
+		searchPathsDepthSlider: QSlider = QSlider(Qt.Horizontal)
+		searchPathsDepthSlider.setMinimum(1)
+		searchPathsDepthSlider.setMaximum(10)
+		searchPathsDepthSlider.setSingleStep(1)
+		searchPathsDepthSlider.setValue(3)
+		searchPathsDepthSlider.setTickPosition(QSlider.TicksBelow)
+		searchPathsDepthSlider.setTickInterval(1)
+		searchPathsDepthSlider.setDisabled(True)
 
 		layout: QFormLayout = QFormLayout()
+		layout.addWidget(cbRunOnStartup)
 		layout.addWidget(cbHideOnClose)
+		layout.addRow(QLabel('Search depth'), searchPathsDepthSlider)
 		# layout.addStretch()
 
 		prefEntriesWidget = QWidget()
