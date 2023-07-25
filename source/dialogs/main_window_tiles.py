@@ -150,7 +150,7 @@ class C4DTile(QFrame):
 
 		self.setLayout(layout)
 
-		picSize: int = int(min(self.width(), self.height()) * 3.)
+		picSize: int = int(min(self.width(), self.height()) * 2.)
 		self.picLabel.setFixedSize(picSize, picSize)
 
 		self.setToolTip(self._createTooltipMenuString())

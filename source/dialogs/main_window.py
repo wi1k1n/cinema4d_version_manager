@@ -66,7 +66,8 @@ class TestMainWindow(QMainWindow):
 
 
 class MainWindow(QMainWindow):
-	GROUPING_MARK_PREFIX: str = '► '
+	GROUPING_MARK_ASC_PREFIX: str = '▲ '
+	GROUPING_MARK_DESC_PREFIX: str = '▼ '
 
 	"""Main Window."""
 	def __init__(self, parent=None):
@@ -106,6 +107,7 @@ class MainWindow(QMainWindow):
 
 		self.dialogs['tags'].tagEditedSignal.connect(lambda tag: self.c4dTabTiles._rebuildWidget())
 		self.dialogs['tags'].tagRemovedSignal.connect(lambda tag: self.c4dTabTiles._tagRemoveFromAll(tag))
+		self.dialogs['tags'].tagOrderChangedSignal.connect(lambda: self.updateTilesWidget())
 
 		self.rescan()
 		self.c4dTabTiles.LoadCache()
@@ -161,10 +163,10 @@ class MainWindow(QMainWindow):
 
 	def _createGroupActions(self):
 		actionsGroupingDict = { # key -> (show_txt, QColor, Shortcut)
-			'none': ('&No grouping', None, 'Ctrl+G,N'),
-			'paths': ('Group by search &paths', None, 'Ctrl+G,P'),
-			'version': ('Group by &version', None, 'Ctrl+G,V'),
-			'tag': ('Group by &tag', None, 'Ctrl+G,T'),
+			'none': ('&No grouping', None, 'Ctrl+G,Ctrl+N'),
+			'paths': ('Group by search &paths', None, 'Ctrl+G,Ctrl+P'),
+			'version': ('Group by &version', None, 'Ctrl+G,Ctrl+V'),
+			'tag': ('Group by &tag', None, 'Ctrl+G,Ctrl+T'),
 		}
 		# for tag in self.GetTags():
 		# 	actionsGroupingDict[f'tag:{tag.uuid}'] = (f'Group by tag \'{tag.name}\'', tag.color)
@@ -212,23 +214,35 @@ class MainWindow(QMainWindow):
 		helpMenu = menuBar.addMenu("&Help")
 		helpMenu.addAction(self.actionAbout)
 	
+	@staticmethod
+	def _isActionAlreadySelected(action: QAction) -> str:
+		for prefix in (MainWindow.GROUPING_MARK_ASC_PREFIX, MainWindow.GROUPING_MARK_DESC_PREFIX):
+			if action.text().startswith(prefix):
+				return prefix
+		return ''
 	def _changeGrouping(self, groupingKey: str):
-		print('group by key:', groupingKey)
+		# print('group by key:', groupingKey)
+		newPrefix: str = MainWindow.GROUPING_MARK_ASC_PREFIX
+		# Figure out new prefix and unselect all actions to 
 		for k, action in self.actionsGrouping.items():
-			alreadyMarked: bool = action.text().startswith(MainWindow.GROUPING_MARK_PREFIX)
-			if k == groupingKey:
-				if not alreadyMarked:
-					action.setText(f'{MainWindow.GROUPING_MARK_PREFIX}{action.text()}')
-				continue
-			if alreadyMarked:
-				action.setText(action.text()[2:])
+			if curPrefix := MainWindow._isActionAlreadySelected(action):
+				action.setText(action.text()[len(curPrefix):])
+				if k == groupingKey:
+					if curPrefix == MainWindow.GROUPING_MARK_ASC_PREFIX:
+						newPrefix = MainWindow.GROUPING_MARK_DESC_PREFIX
+				break
+		
+		for k, action in self.actionsGrouping.items():
+			if k != groupingKey: continue
+			action.setText(f'{newPrefix}{action.text()}')
+			break
 		self.updateTilesWidget()
 	
-	def _getGrouping(self):
+	def _getGrouping(self) -> tuple[str, bool]: # <groupingKey, isAscending>
 		for k, action in self.actionsGrouping.items():
-			if action.text().startswith(MainWindow.GROUPING_MARK_PREFIX):
-				return k
-		return 'none'
+			if prefix := MainWindow._isActionAlreadySelected(action):
+				return k, prefix == MainWindow.GROUPING_MARK_ASC_PREFIX
+		return 'none', True
 	
 	def _createToolBars(self):
 		# fileToolBar = self.addToolBar("File")
@@ -304,7 +318,7 @@ class MainWindow(QMainWindow):
 
 		# Group first
 		c4dGroups: list[C4DTileGroup] = list()
-		groupingKey: str = self._getGrouping()
+		groupingKey, isAscending = self._getGrouping()
 		if groupingKey == 'paths':
 			searchPaths: list[str] = list()
 			if dlg := self._getDialog('preferences'): searchPaths = dlg.GetPreference(PreferencesEntries.SearchPaths)
@@ -313,7 +327,9 @@ class MainWindow(QMainWindow):
 				for sp in searchPaths:
 					if c4dEntry.directory.startswith(sp):
 						idxMap[sp].append(c4dIdx)
-			c4dGroups = [C4DTileGroup(indices, path) for path, indices in idxMap.items()]
+			availablePaths: list[str] = [k for k in idxMap.keys()]
+			availablePaths.sort(reverse=not isAscending)
+			c4dGroups = [C4DTileGroup(idxMap[path], path) for path in availablePaths]
 
 		elif groupingKey == 'version':
 			idxMap: dict[str, list[int]] = dict()
@@ -321,11 +337,13 @@ class MainWindow(QMainWindow):
 				vMaj: str = c4dEntry.GetVersionMajor()
 				if vMaj not in idxMap: idxMap[vMaj] = list()
 				idxMap[vMaj].append(c4dIdx)
-			c4dGroups = [C4DTileGroup(indices, path) for path, indices in idxMap.items()]
+			availableVersions: list[str] = [k for k in idxMap.keys()]
+			availableVersions.sort(reverse=isAscending, key=lambda x: SafeCast(x[1:] if x.lower().startswith('r') else x, int, 0))
+			c4dGroups = [C4DTileGroup(idxMap[version], version) for version in availableVersions]
 
 		elif groupingKey == 'tag':
 			c4dTagBinding: dict[str, list[str]] = self.c4dTabTiles.GetTagBindings()
-			idxMap: dict[str, list[int]] = dict()
+			idxMap: dict[str, list[int]] = dict() # tag uuid -> indices
 			for c4dIdx, c4dEntry in enumerate(c4dEntries):
 				tagUuids: list[str] = c4dTagBinding[c4dEntry.directory]
 				if not len(tagUuids):
@@ -336,7 +354,13 @@ class MainWindow(QMainWindow):
 						if self.GetTag(tagUuid):
 							if tagUuid not in idxMap: idxMap[tagUuid] = list()
 							idxMap[tagUuid].append(c4dIdx)
-			c4dGroups = [C4DTileGroup(indices, self.GetTag(tagUuid).name if tagUuid else 'None') for tagUuid, indices in idxMap.items() if self.GetTag(tagUuid) or tagUuid == '']
+			# Sort groups to correspond order in tags manager
+			for tag in self.GetTags() if isAscending else reversed(self.GetTags()):
+				if tag.uuid in idxMap:
+					c4dGroups.append(C4DTileGroup(idxMap[tag.uuid], tag.name))
+			if '' in idxMap:
+				c4dGroups.append(C4DTileGroup(idxMap[''], 'No tags'))
+			# c4dGroups = [C4DTileGroup(indices, self.GetTag(tagUuid).name if tagUuid else 'None') for tagUuid, indices in idxMap.items() if self.GetTag(tagUuid) or tagUuid == '']
 		
 		# Sort
 		# c4dEntries.sort(key=lambda x: GetFolderTimestampCreated(x.GetPathFolderRoot()))

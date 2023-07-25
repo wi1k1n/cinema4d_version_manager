@@ -201,6 +201,7 @@ class TagsWindow(QDockWidget):
 
 	tagEditedSignal = pyqtSignal(C4DTag)
 	tagRemovedSignal = pyqtSignal(C4DTag)
+	tagOrderChangedSignal = pyqtSignal()
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -303,6 +304,7 @@ class TagsWindow(QDockWidget):
 			self.tagsFlowLayout.addItem(item)
 		self.tagWidgets[tagIdx], self.tagWidgets[tagIdx + dir] = self.tagWidgets[tagIdx + dir], self.tagWidgets[tagIdx]
 		self.tagsFlowLayout.update()
+		self.tagOrderChangedSignal.emit()
 
 	def _onManageTagAccepted(self):			
 		tag: C4DTag = self.manageTagWindow.GetTag()
