@@ -149,8 +149,6 @@ class MainWindow(QMainWindow):
 		self.actionFoldAll = QAction("Toggle &fold all", self)
 		self.actionFoldAll.setShortcut("Ctrl+G,Ctrl+G")
 
-		self.actionUnfoldAll = QAction("&Unfold all", self)
-
 		self._createGroupActions()
 		
 		self.actionSave.triggered.connect(self._storeData)
@@ -161,7 +159,6 @@ class MainWindow(QMainWindow):
 		self.actionRescan.triggered.connect(self.rescan)
 		self.actionTags.triggered.connect(self.openTagsWindow)
 		self.actionFoldAll.triggered.connect(self._toggleFoldAllC4DGroups)
-		self.actionUnfoldAll.triggered.connect(self._unfoldAllC4DGroups)
 		
 		# # Adding help tips
 		# newTip = "Create a new file"
@@ -216,7 +213,6 @@ class MainWindow(QMainWindow):
 		
 		viewMenu = menuBar.addMenu("&View")
 		viewMenu.addAction(self.actionFoldAll)
-		viewMenu.addAction(self.actionUnfoldAll)
 		viewMenu.addSeparator()
 		for k, action in self.actionsGrouping.items():
 			viewMenu.addAction(action)
@@ -313,13 +309,7 @@ class MainWindow(QMainWindow):
 	
 	def _toggleFoldAllC4DGroups(self):
 		visibilities: list[tuple[C4DTileGroup, bool]] = self.c4dTabTiles.GetGroupsVisibility()
-		if all([v for grp, v in visibilities]):
-			return self.c4dTabTiles.SetGroupsVisibility([False] * len(visibilities))
-		self._unfoldAllC4DGroups()
-
-	def _unfoldAllC4DGroups(self):
-		visibilities: list[tuple[C4DTileGroup, bool]] = self.c4dTabTiles.GetGroupsVisibility()
-		self.c4dTabTiles.SetGroupsVisibility([True] * len(visibilities))
+		return self.c4dTabTiles.SetGroupsVisibility([not all([v for grp, v in visibilities])] * len(visibilities))
 
 	def rescan(self):
 		dlg: PreferencesWindow | None = self._getDialog('preferences')
