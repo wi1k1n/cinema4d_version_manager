@@ -231,10 +231,9 @@ class C4DTile(QFrame):
 		self.actionOpenFolder = QAction('Open folder')
 		self.actionOpenFolder.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderRoot()))
 		
-		self.actionOpenFolderPrefs = None
-		if self.c4d.GetPathFolderPrefs():
-			self.actionOpenFolderPrefs = QAction('Open folder prefs')
-			self.actionOpenFolderPrefs.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderPrefs()))
+		self.actionOpenFolderPrefs = QAction('Open folder prefs')
+		self.actionOpenFolderPrefs.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderPrefs()))
+		self.actionOpenFolderPrefs.setEnabled(bool(self.c4d.GetPathFolderPrefs()))
 			
 		self.actionEditNote = QAction('Edit note')
 		self.actionEditNote.triggered.connect(self._openNoteEditor)
@@ -246,8 +245,7 @@ class C4DTile(QFrame):
 		menu.addAction(self.actionRunC4DConsole)
 		menu.addSeparator()
 		menu.addAction(self.actionOpenFolder)
-		if self.actionOpenFolderPrefs:
-			menu.addAction(self.actionOpenFolderPrefs)
+		menu.addAction(self.actionOpenFolderPrefs)
 		menu.addSeparator()
 		menu.addAction(self.actionEditNote)
 
@@ -343,6 +341,8 @@ class C4DTilesWidget(QScrollArea):
 		self.c4dGroups: list[C4DTileGroup] = [C4DTileGroup()] 	# for visual purposes
 		self.c4dCacheInfo: dict[str, C4DCacheInfo] = dict() 	# mapping from c4d_directory to a C4DInfoCache
 
+		self.groupLikeWidgets: list[QWidget] = list()
+
 		self.setWidgetResizable(True)
 	
 	def GetC4DEntries(self) -> list[C4DInfo]:
@@ -364,6 +364,21 @@ class C4DTilesWidget(QScrollArea):
 	def GetTagBindings(self) -> dict[str, list[str]]:
 		return {c4d: ci.tagUuids for c4d, ci in self.c4dCacheInfo.items()}
 	
+	def GetGroupsVisibility(self) -> list[tuple[C4DTileGroup, bool]]:
+		return [(self.c4dGroups[idx], grpWidget.layout().itemAt(0).widget().isVisible()) for idx, grpWidget in enumerate(self.groupLikeWidgets) if grpWidget.layout().count()]
+	
+	def SetGroupsVisibility(self, visibleStates: list[bool]):
+		for idx, groupLikeWidget in enumerate(self.groupLikeWidgets):
+			if not isinstance(groupLikeWidget, QGroupBox): continue
+			groupLikeWidget.setChecked(visibleStates[idx])
+			if not groupLikeWidget.layout().count(): continue
+			innerGroupWidget: QWidget = groupLikeWidget.layout().itemAt(0).widget()
+			C4DTilesWidget.SetWidgetVisible(innerGroupWidget, visibleStates[idx])
+	
+	@staticmethod
+	def SetWidgetVisible(containerWidget: QWidget, setVisible: bool):
+		containerWidget.setVisible(setVisible)
+	
 	def updateTiles(self, c4ds: list[C4DInfo], grouping: list[C4DTileGroup] | None = None):
 		self.c4dEntries = c4ds
 		if grouping is not None:
@@ -381,6 +396,7 @@ class C4DTilesWidget(QScrollArea):
 		centralWidget.setMinimumWidth(100)
 		self.setWidget(centralWidget)
 
+		self.groupLikeWidgets.clear()
 		# Populate
 		for grp in self.c4dGroups:
 			innerGroupLayout: FlowLayout = FlowLayout()
@@ -404,9 +420,7 @@ class C4DTilesWidget(QScrollArea):
 			if createGroup:
 				grouplikeWidget = QGroupBox(grp.name)
 				grouplikeWidget.setCheckable(True) # https://stackoverflow.com/questions/55977559/changing-qgroupbox-checkbox-visual-to-an-expander
-				def changeVisibility(containerWidget: QWidget, setVisible: bool):
-					containerWidget.setVisible(setVisible)
-				grouplikeWidget.clicked.connect(partial(changeVisibility, innerGroupWidget))
+				grouplikeWidget.clicked.connect(partial(C4DTilesWidget.SetWidgetVisible, innerGroupWidget))
 			else:
 				grouplikeWidget = QWidget()
 
@@ -416,6 +430,7 @@ class C4DTilesWidget(QScrollArea):
 
 			grouplikeWidget.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
 			groupsLayout.addWidget(grouplikeWidget)
+			self.groupLikeWidgets.append(grouplikeWidget)
 		
 		groupsLayout.addStretch()
 	
