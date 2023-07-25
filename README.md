@@ -7,16 +7,17 @@
 * Show which instances are currently running
 * Means to sort tags (e.g. via context menu)
 
+* [+] Grouping - Single layer (at least for now)
+	* [+] Search paths
+	* [+] Tags
+	* [+] Major versions
+	* ~~Package/installer (? same as search paths?)~~
+	* [-] New installations
 
-* Grouping - Single layer (at least for now)
-	* Search paths
-	* Tags
-	* Major versions
-	* Package/installer (? same as search paths?)
-	* New installations
 * Filtering - with negation
 	* Search string
-	* + Same as grouping
+	* plus Same as grouping
+
 * Sorting
 	* By version (major, complex?)
 	* By date (creation date)

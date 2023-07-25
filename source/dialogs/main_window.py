@@ -31,6 +31,7 @@ from PyQt5.QtWidgets import (
 from dialogs.preferences import PreferencesWindow, PreferencesEntries
 from dialogs.about import AboutWindow
 from dialogs.tags import TagsWindow, C4DTag
+from dialogs.filtersort import FilterSortWindow
 from dialogs.main_window_tiles import *
 from utils import *
 from gui_utils import *
@@ -74,13 +75,14 @@ class MainWindow(QMainWindow):
 		super(MainWindow, self).__init__(parent)
 
 		self.setWindowTitle("C4D Selector")
-		self.resize(1420, 800)
+		self.resize(1420, 840)
 		self.setMinimumSize(350, 250)
 
 		self.dialogs = {
 			'preferences': PreferencesWindow(),
 			'tags': TagsWindow(),
-			'about': AboutWindow()
+			'about': AboutWindow(),
+			'filtersort': FilterSortWindow()
 		}
 
 		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget(self)
@@ -113,6 +115,7 @@ class MainWindow(QMainWindow):
 		self.c4dTabTiles.LoadCache()
 
 		self.openTagsWindow()
+		self.openFilterSortWindow()
 
 		# TODO: handle this better as a first run guidance
 		# Offer user to open settings
@@ -146,6 +149,9 @@ class MainWindow(QMainWindow):
 		self.actionTags = QAction("&Tags", self)
 		self.actionTags.setShortcut("Ctrl+T")
 
+		self.actionFiltersort = QAction("Filte&r/Sort", self)
+		self.actionFiltersort.setShortcut("Ctrl+R")
+
 		self.actionFoldAll = QAction("Toggle &fold all", self)
 		self.actionFoldAll.setShortcut("Ctrl+G,Ctrl+G")
 
@@ -158,6 +164,7 @@ class MainWindow(QMainWindow):
 		self.actionRefresh.triggered.connect(self.updateTilesWidget)
 		self.actionRescan.triggered.connect(self.rescan)
 		self.actionTags.triggered.connect(self.openTagsWindow)
+		self.actionFiltersort.triggered.connect(self.openFilterSortWindow)
 		self.actionFoldAll.triggered.connect(self._toggleFoldAllC4DGroups)
 		
 		# # Adding help tips
@@ -210,6 +217,7 @@ class MainWindow(QMainWindow):
 		editMenu.addAction(self.actionRescan)
 		editMenu.addSeparator()
 		editMenu.addAction(self.actionTags)
+		editMenu.addAction(self.actionFiltersort)
 		
 		viewMenu = menuBar.addMenu("&View")
 		viewMenu.addAction(self.actionFoldAll)
@@ -293,6 +301,12 @@ class MainWindow(QMainWindow):
 		KEY = 'tags'
 		if dlg := self._getDialog(KEY):
 			self.addDockWidget(Qt.RightDockWidgetArea, dlg)
+			self._showActivateDialog(KEY)
+
+	def openFilterSortWindow(self):
+		KEY = 'filtersort'
+		if dlg := self._getDialog(KEY):
+			self.addDockWidget(Qt.LeftDockWidgetArea, dlg)
 			self._showActivateDialog(KEY)
 	
 	def _getDialog(self, dialogKey: str) -> QWidget | None:

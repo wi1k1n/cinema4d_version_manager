@@ -32,7 +32,7 @@ from PyQt5.QtWidgets import (
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
-from dialogs.tags import TagsWindow, C4DTag
+from dialogs.tags import TagsWindow, C4DTag, TagBubbleWidget
 from version import *
 from utils import *
 from gui_utils import *
@@ -167,7 +167,7 @@ class C4DTile(QFrame):
 				tag: C4DTag = self.parentTilesWidget.GetTag(uuid)
 				if tag is None:
 					continue
-				tagBubbleWidget: BubbleWidget = BubbleWidget(tag.name, tag.color, 5, 3)
+				tagBubbleWidget: TagBubbleWidget = TagBubbleWidget(tag, None, 5, 3)
 				font = tagBubbleWidget.font()
 				font.setPixelSize(10)
 				tagBubbleWidget.setFont(font)

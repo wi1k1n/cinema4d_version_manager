@@ -54,16 +54,32 @@ class C4DTag:
 			'color': self.color.name() if self.color else None,
 		}
 
-class TagWidget(BubbleWidget):
+class TagBubbleWidget(BubbleWidget):
+	def __init__(self, tag: C4DTag, font: QFont | None, rounding: float = 20, margin: int = 7):
+		super().__init__(tag.name, tag.color, rounding, margin)
+		if font:
+			self.setFont(font)
+		self.SetTag(tag)
+	
+	def GetTag(self) -> C4DTag:
+		return self.tag
+	
+	def SetTag(self, tag: C4DTag):
+		self.tag: C4DTag = tag
+		self.SetText(tag.name)
+		self.SetColor(tag.color)
+	
+	def GetDragMimeData(self, evt: QMouseEvent):
+		mimeData: QMimeData = QMimeData()
+		mimeData.setData(C4DTAG_MIMETYPE, QByteArray(self.tag.uuid.encode()))
+		return mimeData
+
+class TagWidget(TagBubbleWidget):
 	tagEditRequestedSignal = pyqtSignal()
 	tagRemoveRequestedSignal = pyqtSignal()
 	tagMoveRequestedSignal = pyqtSignal(int)
 	def __init__(self, tag: C4DTag):
-		super().__init__(tag.name, tag.color)
-		
-		self.setFont(QtGui.QFont(APPLICATION_FONT_FAMILY, 18))
-		self.SetTag(tag)
-		# self.mousePressEvent = self._onMousePress
+		super().__init__(tag, QFont(APPLICATION_FONT_FAMILY, 18))
 		
 		# Actions
 		self.actionEdit: QAction = QAction('Edit', self)
@@ -87,14 +103,6 @@ class TagWidget(BubbleWidget):
 		self.addAction(self.actionRemove)
 
 		self.setContextMenuPolicy(Qt.ActionsContextMenu)
-	
-	def GetTag(self) -> C4DTag:
-		return self.tag
-	
-	def SetTag(self, tag: C4DTag):
-		self.tag: C4DTag = tag
-		self.SetText(tag.name)
-		self.SetColor(tag.color)
 
 	def _onMoveBackAction(self):
 		self.tagMoveRequestedSignal.emit(-1)
@@ -104,11 +112,6 @@ class TagWidget(BubbleWidget):
 		self.tagEditRequestedSignal.emit()
 	def _onRemoveAction(self):
 		self.tagRemoveRequestedSignal.emit()
-	
-	def GetDragMimeData(self, evt: QMouseEvent):
-		mimeData: QMimeData = QMimeData()
-		mimeData.setData(C4DTAG_MIMETYPE, QByteArray(self.tag.uuid.encode()))
-		return mimeData
 
 class ColorPickerWidget(QWidget):
 	def __init__(self, parent: QWidget | None = None) -> None:
