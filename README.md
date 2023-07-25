@@ -13,6 +13,7 @@
 	* Tags
 	* Major versions
 	* Package/installer (? same as search paths?)
+	* New installations
 * Filtering - with negation
 	* Search string
 	* + Same as grouping

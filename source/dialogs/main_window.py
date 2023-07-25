@@ -1,7 +1,8 @@
 import sys, os, typing, datetime as dt
 from subprocess import Popen, PIPE
-from PyQt5 import QtCore, QtGui
+from functools import partial
 
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess, QPoint, QRect
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent
 from PyQt5.QtWidgets import (
@@ -139,11 +140,42 @@ class MainWindow(QMainWindow):
 
 		self.actionTags = QAction("&Tags", self)
 		self.actionTags.setShortcut("Ctrl+T")
+
+		self._createGroupActions()
 		
 		# # Adding help tips
 		# newTip = "Create a new file"
 		# self.newAction.setStatusTip(newTip)
 		# self.newAction.setToolTip(newTip)
+
+	def _createGroupActions(self):
+		actionsGroupingDict = { # key -> (show_txt, QColor)
+			'none': ('&No grouping', None),
+			'paths': ('Group by &search paths', None),
+			'version': ('Group by &version', None),
+			'versionmaj': ('Group by version &major', None),
+		}
+		for tag in self.GetTags():
+			actionsGroupingDict[f'tag:{tag.name}'] = (f'Group by tag \'{tag.name}\'', tag.color)
+
+		def createCheckableAction(key: str) -> QAction:
+			txt, color = actionsGroupingDict[key]
+			action: QAction = QAction(txt)
+			# action.setCheckable(True)
+			# action.setChecked(False)
+			action.triggered.connect(partial(self._changeGrouping, key))
+			if color:
+				pixmap: QPixmap = QPixmap(20, 20)
+				pixmap.fill(color) # TODO: add border
+				action.setIcon(QIcon(pixmap))
+			return action
+
+		self.actionsGrouping: dict[str, QAction] = dict()
+		for key in actionsGroupingDict.keys():
+			self.actionsGrouping[key] = createCheckableAction(key)
+		
+		# default
+		self._changeGrouping('paths')
 		
 	def _createMenuBar(self):
 		menuBar = self.menuBar()
@@ -162,10 +194,23 @@ class MainWindow(QMainWindow):
 		editMenu.addAction(self.actionTags)
 		
 		viewMenu = menuBar.addMenu("&View")
-		viewMenu.addAction(self.actionAbout)
+		for k, action in self.actionsGrouping.items():
+			viewMenu.addAction(action)
 
 		helpMenu = menuBar.addMenu("&Help")
 		helpMenu.addAction(self.actionAbout)
+	
+	def _changeGrouping(self, groupingKey: str):
+		print('group by key:', groupingKey)
+		MARK_PREFIX: str = '► '
+		for k, action in self.actionsGrouping.items():
+			alreadyMarked: bool = action.text().startswith(MARK_PREFIX)
+			if k == groupingKey:
+				if not alreadyMarked:
+					action.setText(f'{MARK_PREFIX}{action.text()}')
+				continue
+			if alreadyMarked:
+				action.setText(action.text()[2:])
 	
 	def _createToolBars(self):
 		# fileToolBar = self.addToolBar("File")
@@ -230,7 +275,6 @@ class MainWindow(QMainWindow):
 			dlg.activateWindow()
 			return dlg
 		return None
-
 
 	# def populateOpenRecent(self):
 	#     # Step 1. Remove the old options from the menu
