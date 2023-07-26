@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal
-from PyQt5.QtGui import QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen
+from PyQt5.QtCore import Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QRectF
+from PyQt5.QtGui import QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen, QPainterPath, QRegion
 from PyQt5.QtWidgets import (
 	QLabel,
 	QMainWindow,
@@ -216,6 +216,9 @@ class DraggableQLabel(QLabel):
 			
 			pixmap = QPixmap(self.size())
 			self.render(pixmap)
+			# TODO: find a way to use same mask for pixmap as in self.mask()
+			# if hasattr(self, 'maskRegion'):
+			# 	pixmap.setMask(self.maskRegion)
 			drag.setPixmap(pixmap)
 	
 			drag.exec_(Qt.MoveAction)
@@ -236,6 +239,12 @@ class BubbleWidget(DraggableQLabel):
 		self.setContentsMargins(margin, margin, margin, margin)
 		self.setAlignment(Qt.AlignCenter)
 		self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+		
+		# TODO: not a lot of sense without masking ondrag-pixmap in DraggableQLabel
+		# path = QPainterPath()
+		# path.addRoundedRect(QRectF(self.rect()), rounding, rounding)
+		# self.maskRegion = QRegion(path.toFillPolygon().toPolygon())
+		# self.setMask(self.maskRegion)
 		
 		# self.setMouseTracking(True)
 	

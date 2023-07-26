@@ -210,6 +210,7 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout.addRow(QCheckBox('Show timestamp'))
 		grpTilesLayout.addRow(QCheckBox('Unused folded group'))
 		grpTilesLayout.addRow(QCheckBox('Show note on tile'))
+		grpTilesLayout.addRow(QCheckBox('Show note: only show first line'))
 
 		##### Main layout
 		mainLayout: QVBoxLayout = QVBoxLayout()

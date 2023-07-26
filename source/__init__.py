@@ -18,7 +18,8 @@ def testApp():
 	win.show()
 	sys.exit(app.exec_())
 
-# https://realpython.com/python-menus-toolbars/#building-context-or-pop-up-menus-in-pyqt
+# Extensive tutorial: https://realpython.com/python-menus-toolbars/#building-context-or-pop-up-menus-in-pyqt
+# Animation on splash: https://stackoverflow.com/questions/22423781/using-a-gif-in-splash-screen-in-pyqt
 if __name__ == "__main__":
 	# testApp()
 	app: QApplication = QApplication(sys.argv)

@@ -1,8 +1,8 @@
 import sys
 from functools import partial
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QKeySequence, QFont
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QIcon, QKeySequence, QFont, QPainterPath, QRegion
 from PyQt5.QtWidgets import (
 	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QToolBar, QAction, QSpinBox, QDialog, QVBoxLayout
 )
@@ -17,6 +17,11 @@ class AboutWindow(QDialog):
 		self.setWindowFlags(self.windowFlags() & ~Qt.WindowMinimizeButtonHint | Qt.FramelessWindowHint)
 		self.setFixedSize(600, 400)
 		self.setStyleSheet("background-color: #c2ffe0;")
+		
+		radius = 25.0
+		path = QPainterPath()
+		path.addRoundedRect(QRectF(self.rect()), radius, radius)
+		self.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
 		self.centralWidget = QLabel("Cinema 4D version manager"
 									+ f"\n\nVersion: {version.C4DL_VERSION}")

@@ -6,6 +6,8 @@
 ### TODOs:
 * Show which instances are currently running
 * Means to sort tags (e.g. via context menu)
+* Autosave layout (+ device(monitor) to open it on right device)
+* Tags attribute: group default folded (to fold tag group by default)
 
 * [+] Grouping - Single layer (at least for now)
 	* [+] Search paths
