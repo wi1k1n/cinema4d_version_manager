@@ -227,6 +227,9 @@ class C4DTile(QFrame):
 
 		self.actionRunC4DConsole = QAction('Run C4D w/console')
 		self.actionRunC4DConsole.triggered.connect(lambda: self._runC4D(['g_console=true']))
+
+		self.actionActivateC4D = QAction('Activate C4D') # https://stackoverflow.com/questions/2090464/python-window-activation
+		self.actionKillC4D = QAction('Kill C4D')
 		
 		self.actionOpenFolder = QAction('Open folder')
 		self.actionOpenFolder.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderRoot()))
@@ -243,6 +246,8 @@ class C4DTile(QFrame):
 
 		menu.addAction(self.actionRunC4D)
 		menu.addAction(self.actionRunC4DConsole)
+		menu.addAction(self.actionActivateC4D)
+		menu.addAction(self.actionKillC4D)
 		menu.addSeparator()
 		menu.addAction(self.actionOpenFolder)
 		menu.addAction(self.actionOpenFolderPrefs)
