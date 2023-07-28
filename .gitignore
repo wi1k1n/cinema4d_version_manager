@@ -1,3 +1,9 @@
+# Don't commit code-signing certificates
+tools/packaging/*.cer
+tools/packaging/*.pfx
+tools/packaging/*.pvk
+
+
 ##########################
 ### Visual Studio Code ###
 ##########################
