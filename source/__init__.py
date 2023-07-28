@@ -1,5 +1,14 @@
 import sys, random, os
 from functools import partial
+
+# Tweak Windows app group for the custom icon to be used instead of Python one
+try:
+    from ctypes import windll  # Only exists on Windows.
+    myappid = 'wi1k1n.c4dtools.c4dvmanager.001'
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QSplashScreen
