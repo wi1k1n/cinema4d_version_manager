@@ -26,7 +26,10 @@ from PyQt5.QtWidgets import (
 	QSizePolicy,
 	QAction,
 	QLayoutItem,
-	QScrollArea
+	QScrollArea,
+	QComboBox,
+	QGroupBox,
+	QCheckBox,
 )
 
 from version import *
@@ -43,27 +46,132 @@ class FilterSortWindow(QDockWidget):
 		self.resize(400, 400)
 		self.setMinimumWidth(150)
 
-		mainArea = QScrollArea(self)
-		mainArea.setWidgetResizable(True)
+		mainLayout: QVBoxLayout = QVBoxLayout()
 
-		widget = QWidget(mainArea)
-		# widget.setMinimumWidth(self.minimumWidth())
+		presetsWidget: QWidget = self._createPresetsWidget()
+		searchWidget: QWidget = self._createSearchWidget()
+		filterWidget: QWidget = self._createFilterWidget()
+		sortWidget: QWidget = self._createSortWidget()
 
-		self.flowLayout = FlowLayout(widget)
-		# self.LoadTags()
-		for i in range(5):
-			self._addTag(f'string#{i}')
-
-		mainArea.setWidget(widget)
+		mainLayout.addWidget(presetsWidget)
+		mainLayout.addWidget(searchWidget)
+		mainLayout.addWidget(filterWidget)
+		mainLayout.addWidget(sortWidget)
+		mainLayout.addStretch()
+		
+		mainArea: QWidget = QWidget(self)
+		mainArea.setLayout(mainLayout)
 		self.setWidget(mainArea)
+
+		# widget = QWidget(mainArea)
+		# # widget.setMinimumWidth(self.minimumWidth())
+
+		# self.flowLayout = FlowLayout(widget)
+		# # self.LoadTags()
+		# for i in range(5):
+		# 	self._addTag(f'string#{i}')
+
+		# mainArea.setWidget(widget)
+		# self.setWidget(mainArea)
 
 		# self.setContextMenuPolicy(Qt.ActionsContextMenu)
 	
-	def LoadTags(self):
-		pass
-	def SaveTags(self):
-		pass
-	
-	def _addTag(self, tag: str):
-		tagWidget: QLabel = QLabel(tag)
-		self.flowLayout.addWidget(tagWidget)
+	def _createPresetsWidget(self) -> QWidget:
+		presetsWidget: QWidget = QWidget(self)
+		presetsLayout: QHBoxLayout = QHBoxLayout()
+		presetsWidget.setLayout(presetsLayout)
+
+		label: QLabel = QLabel('Preset:')
+		comboPreset: QComboBox = QComboBox(self)
+		savePreset: QPushButton = QPushButton('Save', self)
+		removePreset: QPushButton = QPushButton('Remove', self)
+
+		presetsLayout.addWidget(label)
+		presetsLayout.addWidget(comboPreset)
+		presetsLayout.addWidget(savePreset)
+		presetsLayout.addWidget(removePreset)
+
+		label.setFixedWidth(label.minimumSizeHint().width())
+		savePreset.setFixedWidth(savePreset.minimumSizeHint().width())
+		removePreset.setFixedWidth(removePreset.minimumSizeHint().width())
+
+		return presetsWidget
+
+	def _createSearchWidget(self) -> QWidget:
+		mainWidget: QGroupBox = QGroupBox(self)
+		mainWidget.setTitle('Search')
+		mainLayout: QVBoxLayout = QVBoxLayout()
+		mainWidget.setLayout(mainLayout)
+
+		# First row
+		editSearchBox: QLineEdit = QLineEdit(self)
+		searchButton: QPushButton = QPushButton('🔍', self)
+		searchButton.setFixedWidth(searchButton.minimumSizeHint().width())
+		
+		searchBoxLayout: QHBoxLayout() = QHBoxLayout()
+		searchBoxLayout.addWidget(editSearchBox)
+		searchBoxLayout.addWidget(searchButton)
+		
+		# Second row
+		searchableContentButtons: list[QPushButton] = list()
+		for t in ('All', 'Notes', 'Paths'):
+			btn: QPushButton = QPushButton(t, self)
+			btn.setCheckable(True)
+			searchableContentButtons.append(btn)
+		
+		searchCaseSensitiveButton: QPushButton = QPushButton('CS')
+		searchCaseSensitiveButton.setToolTip('Case Sensitive')
+		searchCaseSensitiveButton.setCheckable(True)
+		searchRegexButton: QPushButton = QPushButton('Regex')
+		searchRegexButton.setCheckable(True)
+		
+		searchSettingsLayout: QHBoxLayout() = QHBoxLayout()
+		for btn in searchableContentButtons:
+			searchSettingsLayout.addWidget(btn)
+		searchSettingsLayout.addStretch()
+		searchSettingsLayout.addWidget(searchCaseSensitiveButton)
+		searchSettingsLayout.addWidget(searchRegexButton)
+
+		# Third row
+
+		mainLayout.addLayout(searchBoxLayout)
+		mainLayout.addLayout(searchSettingsLayout)
+		
+		return mainWidget
+
+	def _createFilterWidget(self) -> QWidget:
+		mainWidget: QGroupBox = QGroupBox(self)
+		mainWidget.setTitle('Filter')
+		mainLayout: QVBoxLayout = QVBoxLayout()
+		mainWidget.setLayout(mainLayout)
+
+		# Tags
+		cbTags: QCheckBox = QCheckBox(self)
+		lblTags: QLabel = QLabel('Tags:')
+		tagsWidget: QWidget = QWidget(self)
+		
+		tagsRowLayout: QHBoxLayout = QHBoxLayout()
+		tagsRowLayout.addWidget(cbTags)
+		tagsRowLayout.addWidget(lblTags)
+		tagsRowLayout.addWidget(tagsWidget)
+		tagsRowLayout.addStretch()
+
+		tagsWidget.setMinimumWidth(self.minimumSizeHint().width())
+		tagsFlowLayout: FlowLayout = FlowLayout(tagsWidget)
+		tagsWidget.setLayout(tagsFlowLayout)
+		
+		for t in ('beta', 'alpha', 'exchange', 'main', 'customer', 'package', 'stale'):
+			bubble: BubbleWidget = BubbleWidget(t)
+			tagsFlowLayout.addWidget(bubble)
+		
+		mainLayout.addLayout(tagsRowLayout)
+
+		return mainWidget
+
+	def _createSortWidget(self) -> QWidget:
+		mainWidget: QGroupBox = QGroupBox(self)
+		mainWidget.setTitle('Sort')
+		mainLayout: QVBoxLayout = QVBoxLayout()
+		mainWidget.setLayout(mainLayout)
+
+		return mainWidget

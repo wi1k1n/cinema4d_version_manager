@@ -208,6 +208,7 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout.addRow(cbC4DIconRonalds)
 		grpTilesLayout.addRow(QCheckBox('Trim C4D version from folder name'))
 		grpTilesLayout.addRow(QCheckBox('Show timestamp'))
+		grpTilesLayout.addRow(QCheckBox('Timestamp format'))
 		grpTilesLayout.addRow(QCheckBox('Unused folded group'))
 		grpTilesLayout.addRow(QCheckBox('Show note on tile'))
 		grpTilesLayout.addRow(QCheckBox('Show note: only show first line'))

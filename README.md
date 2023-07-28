@@ -4,6 +4,7 @@
 * Save/restore UI layout: https://stackoverflow.com/questions/23279125/python-pyqt4-functions-to-save-and-restore-ui-widget-values
 
 ### TODOs:
+* Space bar pressed while dragging applies tag but doesn't break dragging
 * Show which instances are currently running
 * Means to sort tags (e.g. via context menu)
 * Autosave layout (+ device(monitor) to open it on right device)
