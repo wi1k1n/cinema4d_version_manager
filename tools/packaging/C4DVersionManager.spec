@@ -1,14 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+APP_NAME = 'C4DVersionManager' # !!! Changing this would create separate .spec file with default settings
 
+# PyInstaller configs
 block_cipher = None
-
-
 a = Analysis(
     ['../../source/__init__.py'],
     pathex=['../../venv/Lib/site-packages', '../../source'],
     binaries=[],
-    datas=[('../../res/images', './res/images')],
+    datas=[('../../res/images', './res/images'),
+           (f'build/{APP_NAME}/build.txt', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -26,7 +27,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='C4DVersionManager',
+    name=APP_NAME,
     icon='../../res/images/icon.png',
     debug=False,
     bootloader_ignore_signals=False,
@@ -47,5 +48,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='C4DVersionManager',
+    name=APP_NAME,
 )
