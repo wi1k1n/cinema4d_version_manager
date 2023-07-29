@@ -14,6 +14,7 @@ from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QSplashScreen
 
 import res.qrc_resources
+import version
 from dialogs.main_window import MainWindow, TestMainWindow
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
@@ -31,6 +32,7 @@ def testApp():
 # Animation on splash: https://stackoverflow.com/questions/22423781/using-a-gif-in-splash-screen-in-pyqt
 if __name__ == "__main__":
 	# testApp()
+	version._loadBuildInfo(os.getcwd())
 	app: QApplication = QApplication(sys.argv)
 
 	icon: QIcon = QIcon(os.path.join(IMAGES_FOLDER, 'icon.png'))

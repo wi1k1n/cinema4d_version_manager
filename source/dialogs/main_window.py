@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
 
-		self.setWindowTitle("C4D Selector")
+		self.setWindowTitle("C4D Version Manager")
 		self.resize(1420, 840)
 		self.setMinimumSize(350, 250)
 
