@@ -300,7 +300,7 @@ class MainWindow(QMainWindow):
 
 	def about(self):
 		if dlg := self._getDialog('about'):
-			dlg.exec_()
+			dlg.show()
 
 	def help(self):
 		self._showActivateDialog('help')

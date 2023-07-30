@@ -1,6 +1,8 @@
+import typing
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QRectF
-from PyQt5.QtGui import QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen, QPainterPath, QRegion
+from PyQt5.QtGui import QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen, QPainterPath, QRegion, QCursor
 from PyQt5.QtWidgets import (
 	QLabel,
 	QMainWindow,
@@ -278,3 +280,18 @@ class BubbleWidget(DraggableQLabel):
 		p.drawRoundedRect(penWidth, penWidth, self.width() - penWidth * 2, self.height() - penWidth * 2, self.rounding, self.rounding)
 		
 		super(DraggableQLabel, self).paintEvent(evt)
+
+class QLabelClickable(QLabel):
+	clicked = pyqtSignal(QMouseEvent)
+	
+	# TODO: use @typing.overload for passing text to constructor as well
+	def __init__(self, parent: QWidget):
+		super(QLabelClickable, self).__init__(parent)
+		self.initUI()
+	
+	def initUI(self):
+		self.setCursor(QCursor(Qt.PointingHandCursor))
+	
+	def mousePressEvent(self, evt: QMouseEvent) -> None:
+		self.clicked.emit(evt)
+		evt.accept()

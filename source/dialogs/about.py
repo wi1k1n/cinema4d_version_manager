@@ -1,16 +1,16 @@
-import sys
+import sys, typing, platform
 from functools import partial
-import typing
 from PyQt5 import QtCore, QtGui
 
-from PyQt5.QtCore import Qt, QRectF, QPropertyAnimation, pyqtProperty, QEasingCurve
-from PyQt5.QtGui import QIcon, QKeySequence, QFont, QPainterPath, QRegion, QPixmap, QColor, QMouseEvent, QShowEvent, QCursor, QCloseEvent
+from PyQt5.QtCore import Qt, QRectF, QPropertyAnimation, pyqtProperty, QEasingCurve, QObject, QEvent
+from PyQt5.QtGui import QIcon, QKeySequence, QFont, QPainterPath, QRegion, QPixmap, QColor, QMouseEvent, QShowEvent, QCursor, QCloseEvent, QFocusEvent
 from PyQt5.QtWidgets import (
 	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QToolBar, QAction, QSpinBox, QDialog, QVBoxLayout, QHBoxLayout, QWidget
 )
 
 import version
 from utils import *
+from gui_utils import *
 
 # https://stackoverflow.com/questions/46428856/how-to-make-window-fade-out-slowly-when-i-click-the-close-button-by-pyqt5
 class FadeInOutDialog(QDialog):
@@ -21,7 +21,7 @@ class FadeInOutDialog(QDialog):
 		self.animFadeIn.setDuration(500)
 		self.animFadeIn.setStartValue(0)
 		self.animFadeIn.setEndValue(1.)
-		self.animFadeIn.setEasingCurve(QEasingCurve(QEasingCurve.InQuad))
+		self.animFadeIn.setEasingCurve(QEasingCurve(QEasingCurve.InQuad)) # https://doc.qt.io/qt-5/qeasingcurve.html
 		
 		self.animFadeOut: QPropertyAnimation = QPropertyAnimation(self, b'setWinOpacity')
 		self.animFadeOut.setDuration(300)
@@ -52,7 +52,7 @@ class FadeInOutDialog(QDialog):
 		if self.fadeOutFinished:
 			self.fadeOutFinished = False
 			super().closeEvent(evt)
-			evt.accept()
+			return evt.accept()
 
 		self.animFadeIn.stop()
 		self.animFadeOut.start()
@@ -62,7 +62,7 @@ class AboutWindow(FadeInOutDialog):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setWindowTitle("About")
-		self.setWindowFlags(self.windowFlags() & ~Qt.WindowMinimizeButtonHint | Qt.FramelessWindowHint)
+		self.setWindowFlags(self.windowFlags() & ~Qt.WindowMinimizeButtonHint | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
 		self.setFixedSize(600, 400)
 		self.setStyleSheet("background-color: #FFFF33; color: #4D4D4D;")
 		
@@ -112,20 +112,21 @@ class AboutWindow(FadeInOutDialog):
 		copyrightLabel.setFont(QFont(regularTextFont))
 
 		# Contribute line
-		contributePicLabel: QLabel = QLabel(self)
+		contributePicLabel: QLabelClickable = QLabelClickable(self)
 		contributePixmap: QPixmap = QPixmap(os.path.join(IMAGES_FOLDER, 'gitlab.png'))
 		contributePicLabel.setScaledContents(True)
 		contributePicLabel.setPixmap(contributePixmap)
 		contributePicLabel.setFixedSize(38, 38)
-		contributePicLabel.setCursor(QCursor(Qt.PointingHandCursor))
+		contributePicLabel.clicked.connect(self.openSourceCodeRepo)
 
-		contributeLabel: QLabel = QLabel('Contribute', self)
+		contributeLabel: QLabelClickable = QLabelClickable(self)
+		contributeLabel.setText('Contribute')
 		contributeFont: QFont = QFont(regularTextFont)
 		contributeFont.setPixelSize(22)
 		contributeFont.setStretch(125)
 		contributeFont.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.5)
 		contributeLabel.setFont(contributeFont)
-		contributeLabel.setCursor(QCursor(Qt.PointingHandCursor))
+		contributeLabel.clicked.connect(self.openSourceCodeRepo)
 		
 		contributeRowLayout: QHBoxLayout = QHBoxLayout()
 		contributeRowLayout.addStretch()
@@ -143,17 +144,32 @@ class AboutWindow(FadeInOutDialog):
 		mainLayout.addLayout(contributeRowLayout)
 		self.setLayout(mainLayout)
 
-		self.mousePressEvent = self.mousePressed
-		self.keyPressEvent = lambda evt: self.hide()
+		self.isCloseOnLosingFocus = True
 	
-	def mousePressed(self, evt: QMouseEvent):
+	def openSourceCodeRepo(self, evt: QMouseEvent):
+		OpenURL('https://github.com/wi1k1n/cinema4d_version_manager')
+		self.isCloseOnLosingFocus = False
+		evt.accept()
+
+	def mousePressEvent(self, evt: QMouseEvent):
 		if evt.button() == Qt.RightButton:
 			if not self.buildStringCopied:
+				copyStr: str = f'{self.buildLabel.text()} {platform.system()} {platform.release()}'
+				QApplication.clipboard().setText(copyStr)
 				self.buildLabel.setText(self.buildLabel.text() + ' (copied)')
 				self.buildStringCopied = True
 		else:
 			self.close()
 		evt.accept()
+
+	def changeEvent(self, evt: QEvent) -> None:
+		# print(qEventLookup[str(evt.type())])
+		if evt.type() == QEvent.ActivationChange:
+			if not self.isActiveWindow() and self.isCloseOnLosingFocus:
+				self.close()
+				return
+			self.isCloseOnLosingFocus = True
+		return super().changeEvent(evt)
 	
 	def showEvent(self, evt: QShowEvent):
 		super().showEvent(evt)
