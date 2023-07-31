@@ -1,4 +1,5 @@
-import os, re, datetime as dt, uuid, json, psutil, signal
+import os, re, datetime as dt, uuid, json, psutil, signal, win32process, win32gui, ctypes, win32con
+
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
@@ -30,12 +31,73 @@ def OpenURL(url: str) -> None:
 def GetFolderTimestampCreated(path: str) -> dt.datetime:
 	return dt.datetime.fromtimestamp(os.stat(path).st_ctime)
 
-def IsPIDExisting(pid: int) -> bool:
-	return psutil.pid_exists(pid)
+class WinUtils:
+	EnumWindows = ctypes.windll.user32.EnumWindows
+	EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int))
+	GetWindowText = ctypes.windll.user32.GetWindowTextW
+	GetWindowTextLength = ctypes.windll.user32.GetWindowTextLengthW
+	IsWindowVisible = ctypes.windll.user32.IsWindowVisible
 
-def KillProcessByPID(pid: int):
-	if IsPIDExisting(pid):
-	    os.kill(pid, signal.SIGTERM)
+	@staticmethod
+	def IsPIDExisting(pid: int) -> bool:
+		return psutil.pid_exists(pid)
+
+	@staticmethod
+	def KillProcessByPID(pid: int):
+		if WinUtils.IsPIDExisting(pid):
+			os.kill(pid, signal.SIGTERM)
+
+	@staticmethod
+	def getWindowTitleByHandle(hwnd):
+		length = WinUtils.GetWindowTextLength(hwnd)
+		buff = ctypes.create_unicode_buffer(length + 1)
+		WinUtils.GetWindowText(hwnd, buff, length + 1)
+		return buff.value
+
+	@staticmethod # https://stackoverflow.com/a/70659506/5765191
+	def getHWNDsForPID(pid):
+		def callback(hwnd, hwnds):
+			#if win32gui.IsWindowVisible(hwnd) and win32gui.IsWindowEnabled(hwnd):
+			_, foundPID = win32process.GetWindowThreadProcessId(hwnd)
+			if foundPID == pid:
+				hwnds.append(hwnd)
+			return True
+		hwnds = []
+		win32gui.EnumWindows(callback, hwnds)
+		return hwnds
+	
+	@staticmethod
+	def getProcessIDByName():
+		qobuz_pids = []
+		process_name = "Qobuz.exe"
+		for proc in psutil.process_iter():
+			if process_name in proc.name():
+				qobuz_pids.append(proc.pid)
+		return qobuz_pids
+	
+	@staticmethod # https://stackoverflow.com/a/2091530/5765191
+	def setWindowForeground(hwnd: int):
+		win32gui.SetForegroundWindow(hwnd)
+	
+	@staticmethod # https://stackoverflow.com/a/60471554/5765191
+	def getWindowPlacement(hwnd: int) -> int:
+		tup = win32gui.GetWindowPlacement(hwnd)
+		if tup[1] == win32con.SW_SHOWMAXIMIZED:
+			return 1
+		if tup[1] == win32con.SW_SHOWMINIMIZED:
+			return -1
+		return 0
+
+	@staticmethod
+	def isWindowMinimized(hwnd: int):
+		return WinUtils.getWindowPlacement(hwnd) == -1
+	@staticmethod
+	def isWindowMaximized(hwnd: int):
+		return WinUtils.getWindowPlacement(hwnd) == 1
+
+	@staticmethod # https://stackoverflow.com/a/2791681/5765191
+	def maximizeWindow(hwnd: int):
+		win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
 
 # Tries to cast given value to type, falls back to default if error
 def SafeCast(val, to_type, default=None):
@@ -191,148 +253,148 @@ def FindCinemaPackagesInFolder(path, maxDepth = 2) -> dict[str, C4DInfo]:
 	return ret
 
 qEventLookup = {"0": "QEvent::None",
-                "114": "QEvent::ActionAdded",
-                "113": "QEvent::ActionChanged",
-                "115": "QEvent::ActionRemoved",
-                "99": "QEvent::ActivationChange",
-                "121": "QEvent::ApplicationActivate",
-                "122": "QEvent::ApplicationDeactivate",
-                "36": "QEvent::ApplicationFontChange",
-                "37": "QEvent::ApplicationLayoutDirectionChange",
-                "38": "QEvent::ApplicationPaletteChange",
-                "214": "QEvent::ApplicationStateChange",
-                "35": "QEvent::ApplicationWindowIconChange",
-                "68": "QEvent::ChildAdded",
-                "69": "QEvent::ChildPolished",
-                "71": "QEvent::ChildRemoved",
-                "40": "QEvent::Clipboard",
-                "19": "QEvent::Close",
-                "200": "QEvent::CloseSoftwareInputPanel",
-                "178": "QEvent::ContentsRectChange",
-                "82": "QEvent::ContextMenu",
-                "183": "QEvent::CursorChange",
-                "52": "QEvent::DeferredDelete",
-                "60": "QEvent::DragEnter",
-                "62": "QEvent::DragLeave",
-                "61": "QEvent::DragMove",
-                "63": "QEvent::Drop",
-                "170": "QEvent::DynamicPropertyChange",
-                "98": "QEvent::EnabledChange",
-                "10": "QEvent::Enter",
-                "150": "QEvent::EnterEditFocus",
-                "124": "QEvent::EnterWhatsThisMode",
-                "206": "QEvent::Expose",
-                "116": "QEvent::FileOpen",
-                "8": "QEvent::FocusIn",
-                "9": "QEvent::FocusOut",
-                "23": "QEvent::FocusAboutToChange",
-                "97": "QEvent::FontChange",
-                "198": "QEvent::Gesture",
-                "202": "QEvent::GestureOverride",
-                "188": "QEvent::GrabKeyboard",
-                "186": "QEvent::GrabMouse",
-                "159": "QEvent::GraphicsSceneContextMenu",
-                "164": "QEvent::GraphicsSceneDragEnter",
-                "166": "QEvent::GraphicsSceneDragLeave",
-                "165": "QEvent::GraphicsSceneDragMove",
-                "167": "QEvent::GraphicsSceneDrop",
-                "163": "QEvent::GraphicsSceneHelp",
-                "160": "QEvent::GraphicsSceneHoverEnter",
-                "162": "QEvent::GraphicsSceneHoverLeave",
-                "161": "QEvent::GraphicsSceneHoverMove",
-                "158": "QEvent::GraphicsSceneMouseDoubleClick",
-                "155": "QEvent::GraphicsSceneMouseMove",
-                "156": "QEvent::GraphicsSceneMousePress",
-                "157": "QEvent::GraphicsSceneMouseRelease",
-                "182": "QEvent::GraphicsSceneMove",
-                "181": "QEvent::GraphicsSceneResize",
-                "168": "QEvent::GraphicsSceneWheel",
-                "18": "QEvent::Hide",
-                "27": "QEvent::HideToParent",
-                "127": "QEvent::HoverEnter",
-                "128": "QEvent::HoverLeave",
-                "129": "QEvent::HoverMove",
-                "96": "QEvent::IconDrag",
-                "101": "QEvent::IconTextChange",
-                "83": "QEvent::InputMethod",
-                "207": "QEvent::InputMethodQuery",
-                "169": "QEvent::KeyboardLayoutChange",
-                "6": "QEvent::KeyPress",
-                "7": "QEvent::KeyRelease",
-                "89": "QEvent::LanguageChange",
-                "90": "QEvent::LayoutDirectionChange",
-                "76": "QEvent::LayoutRequest",
-                "11": "QEvent::Leave",
-                "151": "QEvent::LeaveEditFocus",
-                "125": "QEvent::LeaveWhatsThisMode",
-                "88": "QEvent::LocaleChange",
-                "176": "QEvent::NonClientAreaMouseButtonDblClick",
-                "174": "QEvent::NonClientAreaMouseButtonPress",
-                "175": "QEvent::NonClientAreaMouseButtonRelease",
-                "173": "QEvent::NonClientAreaMouseMove",
-                "177": "QEvent::MacSizeChange",
-                "43": "QEvent::MetaCall",
-                "102": "QEvent::ModifiedChange",
-                "4": "QEvent::MouseButtonDblClick",
-                "2": "QEvent::MouseButtonPress",
-                "3": "QEvent::MouseButtonRelease",
-                "5": "QEvent::MouseMove",
-                "109": "QEvent::MouseTrackingChange",
-                "13": "QEvent::Move",
-                "197": "QEvent::NativeGesture",
-                "208": "QEvent::OrientationChange",
-                "12": "QEvent::Paint",
-                "39": "QEvent::PaletteChange",
-                "131": "QEvent::ParentAboutToChange",
-                "21": "QEvent::ParentChange",
-                "212": "QEvent::PlatformPanel",
-                "217": "QEvent::PlatformSurface",
-                "75": "QEvent::Polish",
-                "74": "QEvent::PolishRequest",
-                "123": "QEvent::QueryWhatsThis",
-                "106": "QEvent::ReadOnlyChange",
-                "199": "QEvent::RequestSoftwareInputPanel",
-                "14": "QEvent::Resize",
-                "204": "QEvent::ScrollPrepare",
-                "205": "QEvent::Scroll",
-                "117": "QEvent::Shortcut",
-                "51": "QEvent::ShortcutOverride",
-                "17": "QEvent::Show",
-                "26": "QEvent::ShowToParent",
-                "50": "QEvent::SockAct",
-                "192": "QEvent::StateMachineSignal",
-                "193": "QEvent::StateMachineWrapped",
-                "112": "QEvent::StatusTip",
-                "100": "QEvent::StyleChange",
-                "87": "QEvent::TabletMove",
-                "92": "QEvent::TabletPress",
-                "93": "QEvent::TabletRelease",
-                "171": "QEvent::TabletEnterProximity",
-                "172": "QEvent::TabletLeaveProximity",
-                "219": "QEvent::TabletTrackingChange",
-                "22": "QEvent::ThreadChange",
-                "1": "QEvent::Timer",
-                "120": "QEvent::ToolBarChange",
-                "110": "QEvent::ToolTip",
-                "184": "QEvent::ToolTipChange",
-                "194": "QEvent::TouchBegin",
-                "209": "QEvent::TouchCancel",
-                "196": "QEvent::TouchEnd",
-                "195": "QEvent::TouchUpdate",
-                "189": "QEvent::UngrabKeyboard",
-                "187": "QEvent::UngrabMouse",
-                "78": "QEvent::UpdateLater",
-                "77": "QEvent::UpdateRequest",
-                "111": "QEvent::WhatsThis",
-                "118": "QEvent::WhatsThisClicked",
-                "31": "QEvent::Wheel",
-                "132": "QEvent::WinEventAct",
-                "24": "QEvent::WindowActivate",
-                "103": "QEvent::WindowBlocked",
-                "25": "QEvent::WindowDeactivate",
-                "34": "QEvent::WindowIconChange",
-                "105": "QEvent::WindowStateChange",
-                "33": "QEvent::WindowTitleChange",
-                "104": "QEvent::WindowUnblocked",
-                "203": "QEvent::WinIdChange",
-                "126": "QEvent::ZOrderChange", }
+				"114": "QEvent::ActionAdded",
+				"113": "QEvent::ActionChanged",
+				"115": "QEvent::ActionRemoved",
+				"99": "QEvent::ActivationChange",
+				"121": "QEvent::ApplicationActivate",
+				"122": "QEvent::ApplicationDeactivate",
+				"36": "QEvent::ApplicationFontChange",
+				"37": "QEvent::ApplicationLayoutDirectionChange",
+				"38": "QEvent::ApplicationPaletteChange",
+				"214": "QEvent::ApplicationStateChange",
+				"35": "QEvent::ApplicationWindowIconChange",
+				"68": "QEvent::ChildAdded",
+				"69": "QEvent::ChildPolished",
+				"71": "QEvent::ChildRemoved",
+				"40": "QEvent::Clipboard",
+				"19": "QEvent::Close",
+				"200": "QEvent::CloseSoftwareInputPanel",
+				"178": "QEvent::ContentsRectChange",
+				"82": "QEvent::ContextMenu",
+				"183": "QEvent::CursorChange",
+				"52": "QEvent::DeferredDelete",
+				"60": "QEvent::DragEnter",
+				"62": "QEvent::DragLeave",
+				"61": "QEvent::DragMove",
+				"63": "QEvent::Drop",
+				"170": "QEvent::DynamicPropertyChange",
+				"98": "QEvent::EnabledChange",
+				"10": "QEvent::Enter",
+				"150": "QEvent::EnterEditFocus",
+				"124": "QEvent::EnterWhatsThisMode",
+				"206": "QEvent::Expose",
+				"116": "QEvent::FileOpen",
+				"8": "QEvent::FocusIn",
+				"9": "QEvent::FocusOut",
+				"23": "QEvent::FocusAboutToChange",
+				"97": "QEvent::FontChange",
+				"198": "QEvent::Gesture",
+				"202": "QEvent::GestureOverride",
+				"188": "QEvent::GrabKeyboard",
+				"186": "QEvent::GrabMouse",
+				"159": "QEvent::GraphicsSceneContextMenu",
+				"164": "QEvent::GraphicsSceneDragEnter",
+				"166": "QEvent::GraphicsSceneDragLeave",
+				"165": "QEvent::GraphicsSceneDragMove",
+				"167": "QEvent::GraphicsSceneDrop",
+				"163": "QEvent::GraphicsSceneHelp",
+				"160": "QEvent::GraphicsSceneHoverEnter",
+				"162": "QEvent::GraphicsSceneHoverLeave",
+				"161": "QEvent::GraphicsSceneHoverMove",
+				"158": "QEvent::GraphicsSceneMouseDoubleClick",
+				"155": "QEvent::GraphicsSceneMouseMove",
+				"156": "QEvent::GraphicsSceneMousePress",
+				"157": "QEvent::GraphicsSceneMouseRelease",
+				"182": "QEvent::GraphicsSceneMove",
+				"181": "QEvent::GraphicsSceneResize",
+				"168": "QEvent::GraphicsSceneWheel",
+				"18": "QEvent::Hide",
+				"27": "QEvent::HideToParent",
+				"127": "QEvent::HoverEnter",
+				"128": "QEvent::HoverLeave",
+				"129": "QEvent::HoverMove",
+				"96": "QEvent::IconDrag",
+				"101": "QEvent::IconTextChange",
+				"83": "QEvent::InputMethod",
+				"207": "QEvent::InputMethodQuery",
+				"169": "QEvent::KeyboardLayoutChange",
+				"6": "QEvent::KeyPress",
+				"7": "QEvent::KeyRelease",
+				"89": "QEvent::LanguageChange",
+				"90": "QEvent::LayoutDirectionChange",
+				"76": "QEvent::LayoutRequest",
+				"11": "QEvent::Leave",
+				"151": "QEvent::LeaveEditFocus",
+				"125": "QEvent::LeaveWhatsThisMode",
+				"88": "QEvent::LocaleChange",
+				"176": "QEvent::NonClientAreaMouseButtonDblClick",
+				"174": "QEvent::NonClientAreaMouseButtonPress",
+				"175": "QEvent::NonClientAreaMouseButtonRelease",
+				"173": "QEvent::NonClientAreaMouseMove",
+				"177": "QEvent::MacSizeChange",
+				"43": "QEvent::MetaCall",
+				"102": "QEvent::ModifiedChange",
+				"4": "QEvent::MouseButtonDblClick",
+				"2": "QEvent::MouseButtonPress",
+				"3": "QEvent::MouseButtonRelease",
+				"5": "QEvent::MouseMove",
+				"109": "QEvent::MouseTrackingChange",
+				"13": "QEvent::Move",
+				"197": "QEvent::NativeGesture",
+				"208": "QEvent::OrientationChange",
+				"12": "QEvent::Paint",
+				"39": "QEvent::PaletteChange",
+				"131": "QEvent::ParentAboutToChange",
+				"21": "QEvent::ParentChange",
+				"212": "QEvent::PlatformPanel",
+				"217": "QEvent::PlatformSurface",
+				"75": "QEvent::Polish",
+				"74": "QEvent::PolishRequest",
+				"123": "QEvent::QueryWhatsThis",
+				"106": "QEvent::ReadOnlyChange",
+				"199": "QEvent::RequestSoftwareInputPanel",
+				"14": "QEvent::Resize",
+				"204": "QEvent::ScrollPrepare",
+				"205": "QEvent::Scroll",
+				"117": "QEvent::Shortcut",
+				"51": "QEvent::ShortcutOverride",
+				"17": "QEvent::Show",
+				"26": "QEvent::ShowToParent",
+				"50": "QEvent::SockAct",
+				"192": "QEvent::StateMachineSignal",
+				"193": "QEvent::StateMachineWrapped",
+				"112": "QEvent::StatusTip",
+				"100": "QEvent::StyleChange",
+				"87": "QEvent::TabletMove",
+				"92": "QEvent::TabletPress",
+				"93": "QEvent::TabletRelease",
+				"171": "QEvent::TabletEnterProximity",
+				"172": "QEvent::TabletLeaveProximity",
+				"219": "QEvent::TabletTrackingChange",
+				"22": "QEvent::ThreadChange",
+				"1": "QEvent::Timer",
+				"120": "QEvent::ToolBarChange",
+				"110": "QEvent::ToolTip",
+				"184": "QEvent::ToolTipChange",
+				"194": "QEvent::TouchBegin",
+				"209": "QEvent::TouchCancel",
+				"196": "QEvent::TouchEnd",
+				"195": "QEvent::TouchUpdate",
+				"189": "QEvent::UngrabKeyboard",
+				"187": "QEvent::UngrabMouse",
+				"78": "QEvent::UpdateLater",
+				"77": "QEvent::UpdateRequest",
+				"111": "QEvent::WhatsThis",
+				"118": "QEvent::WhatsThisClicked",
+				"31": "QEvent::Wheel",
+				"132": "QEvent::WinEventAct",
+				"24": "QEvent::WindowActivate",
+				"103": "QEvent::WindowBlocked",
+				"25": "QEvent::WindowDeactivate",
+				"34": "QEvent::WindowIconChange",
+				"105": "QEvent::WindowStateChange",
+				"33": "QEvent::WindowTitleChange",
+				"104": "QEvent::WindowUnblocked",
+				"203": "QEvent::WinIdChange",
+				"126": "QEvent::ZOrderChange", }

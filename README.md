@@ -6,6 +6,8 @@
 * C4D instances interaction:
 	* Show which c4d instances status on tiles: currently running, closed
 	* Allow to activate, kill, restart c4d instances
+	* Enable/Disable actions depending on current state (no restart before running)
+	* Extend grouping to group by state: running, killed, closed, not started
 * Group/Filter/Sort
 	* Create layout
 	* Add functionality to the layout

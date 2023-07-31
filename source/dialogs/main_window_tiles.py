@@ -1,4 +1,4 @@
-import sys, os, typing, datetime as dt, json
+import sys, os, typing, datetime as dt, json, re
 from subprocess import Popen, PIPE
 from functools import partial
 
@@ -112,8 +112,7 @@ class C4DTile(QFrame):
 		# self.c4dProcess.setStandardErrorFile(QProcess.nullDevice())
 		# self.c4dProcess.setStandardInputFile(QProcess.nullDevice())
 		# self.c4dProcess.setStandardOutputFile(QProcess.nullDevice())
-		self.c4dProcess.finished.connect(lambda evt: print('finished'))
-		self.c4dProcessPID: int = 0
+		self.c4dProcessPID: int = 0 # 0 - not yet started this session, -1 - started but was closed, -2 - started but was killed
 		self.c4dProcessArgs = []
 		self.c4dProcessRestartTime: QTimer = QTimer()
 		self.c4dProcessRestartTime.setInterval(500)
@@ -129,7 +128,8 @@ class C4DTile(QFrame):
 
 		self._setupUI()
 		self._addActions()
-
+		
+		self.setToolTip(self._createTooltipMenuString())
 		self.picLabel.mousePressEvent = self._mouseClicked
 
 		self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -168,7 +168,13 @@ class C4DTile(QFrame):
 		picSize: int = int(min(self.width(), self.height()) * 2.)
 		self.picLabel.setFixedSize(picSize, picSize)
 
-		self.setToolTip(self._createTooltipMenuString())
+		self.c4dProcessStatusLabel: QLabel = QLabel(self)
+		self.c4dProcessStatusLabel.setStyleSheet('background-color: #d1d1d1;')
+		self.c4dProcessStatusLabel.setFixedSize(16, 16)
+		self.c4dProcessStatusLabel.setGeometry(QRect(QPoint(1, 1), self.c4dProcessStatusLabel.size()))
+		self.c4dProcessStatusTimer: QTimer = QTimer()
+		self.c4dProcessStatusTimer.setInterval(1000)
+		self.c4dProcessStatusTimer.timeout.connect(self._updateProcessStatusLabel)
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
@@ -195,19 +201,26 @@ class C4DTile(QFrame):
 	def _getActionForMouseClick(self, button: Qt.MouseButton, modifiers: Qt.KeyboardModifiers):
 		if button == Qt.LeftButton:
 			if modifiers & Qt.KeyboardModifier.ControlModifier:
-				if modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Ctrl+Shift+Click: open prefs folder
+				if modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Ctrl+Shift+LClick: open prefs folder
 					return self.actionOpenFolderPrefs
-				else: 														# Ctrl+Click: run with console
+				else: 														# Ctrl+LClick: run with console
 					return self.actionRunC4DConsole
-			elif modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Shift+Click: open c4d folder
+			elif modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Shift+LClick: open c4d folder
 				return self.actionOpenFolder
-			else: 															# Click: run c4d
+			else: 															# LClick: run c4d
 				return self.actionRunC4D
+		if button == Qt.MiddleButton:
+			if modifiers & Qt.KeyboardModifier.ControlModifier:
+				return self.actionRestartC4D 								# Ctrl+MClick: restart c4d
+			elif modifiers & Qt.KeyboardModifier.ShiftModifier:
+				return self.actionKillC4D 									# Shift+MClick: kill c4d
+			else:
+				return self.actionActivateC4D 								# MClick: activate c4d
 		return None
 
 	def _runC4D(self, args: list[str] = []):
 		# https://forum.qt.io/topic/129701/qprocess-startdetached-but-the-child-process-closes-when-the-parent-exits/6
-		if self.c4dProcessPID and IsPIDExisting(self.c4dProcessPID):
+		if self.c4dProcessPID > 0 and WinUtils.IsPIDExisting(self.c4dProcessPID):
 			QMessageBox.warning(self, self.c4d.directory, 'This Cinema 4D instance is already running..', QMessageBox.Ok)
 			return
 		
@@ -216,15 +229,37 @@ class C4DTile(QFrame):
 		self.c4dProcessArgs = args
 
 		_, self.c4dProcessPID = self.c4dProcess.startDetached()
+		if not self.c4dProcessStatusTimer.isActive():
+			self.c4dProcessStatusTimer.start()
 	
 	def _killC4D(self):
-		if self.c4dProcessPID and IsPIDExisting(self.c4dProcessPID):
-			KillProcessByPID(self.c4dProcessPID)
-			self.c4dProcessPID = 0
+		if self.c4dProcessPID > 0 and WinUtils.IsPIDExisting(self.c4dProcessPID):
+			WinUtils.KillProcessByPID(self.c4dProcessPID)
+			self.c4dProcessPID = -2
 
 	def _restartC4D(self):
 		self._killC4D()
 		self.c4dProcessRestartTime.start()
+	
+	def _updateProcessStatusLabel(self):
+		if self.c4dProcessPID == 0: # not yet started, gray
+			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #d1d1d1;')
+		if self.c4dProcessPID == -2: # started, but was killed, red
+			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #ff0000;')
+		if self.c4dProcessPID == -1 or not WinUtils.IsPIDExisting(self.c4dProcessPID): # was running, but not there anymore -> orange
+			return self.c4dProcessStatusLabel.setStyleSheet('background-color: orange;')
+		self.c4dProcessStatusLabel.setStyleSheet('background-color: #00FF00;') # started, running, green
+	
+	def _activateC4D(self):
+		hwnds = WinUtils.getHWNDsForPID(self.c4dProcessPID)
+		c4dMainWindowRE = re.compile(f'^Cinema 4D {self.c4d.GetVersionString()} *')
+		mainWindowHWNDs = [hwnd for hwnd in hwnds if c4dMainWindowRE.match(WinUtils.getWindowTitleByHandle(hwnd))]
+		if len(mainWindowHWNDs) != 1:
+			return
+		hwnd: int = mainWindowHWNDs[0]
+		if WinUtils.isWindowMinimized(hwnd):
+			WinUtils.maximizeWindow(hwnd)
+		WinUtils.setWindowForeground(hwnd)
 
 	def _setNote(self, text: str):
 		ci: C4DCacheInfo = self.GetCacheInfo()
@@ -255,6 +290,7 @@ class C4DTile(QFrame):
 		self.actionRunC4DConsole.triggered.connect(lambda: self._runC4D(['g_console=true']))
 
 		self.actionActivateC4D = QAction('Activate C4D') # https://stackoverflow.com/questions/2090464/python-window-activation
+		self.actionActivateC4D.triggered.connect(self._activateC4D)
 
 		self.actionKillC4D = QAction('Kill C4D')
 		self.actionKillC4D.triggered.connect(self._killC4D)
