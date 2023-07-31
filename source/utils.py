@@ -111,6 +111,9 @@ class C4DCacheInfo:
 	def __init__(self, tagUuids: list[str] = [], note: str = '') -> None:
 		self.tagUuids: list[str] = tagUuids
 		self.note: str = note
+		
+		# Session related, is not stored
+		self.processStatus: int = 0 # 0 - not started yet; -1 started and closed; -2 - started and killed, > 0 - running
 	
 	def ToJSON(self) -> dict:
 		return {

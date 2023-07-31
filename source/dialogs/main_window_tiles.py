@@ -113,6 +113,8 @@ class C4DTile(QFrame):
 		# self.c4dProcess.setStandardInputFile(QProcess.nullDevice())
 		# self.c4dProcess.setStandardOutputFile(QProcess.nullDevice())
 		self.c4dProcessPID: int = 0 # 0 - not yet started this session, -1 - started but was closed, -2 - started but was killed
+		if c4dCacheInfo := self.GetCacheInfo():
+			self.c4dProcessPID = c4dCacheInfo.processStatus
 		self.c4dProcessArgs = []
 		self.c4dProcessRestartTime: QTimer = QTimer()
 		self.c4dProcessRestartTime.setInterval(500)
@@ -169,12 +171,12 @@ class C4DTile(QFrame):
 		self.picLabel.setFixedSize(picSize, picSize)
 
 		self.c4dProcessStatusLabel: QLabel = QLabel(self)
-		self.c4dProcessStatusLabel.setStyleSheet('background-color: #d1d1d1;')
 		self.c4dProcessStatusLabel.setFixedSize(16, 16)
 		self.c4dProcessStatusLabel.setGeometry(QRect(QPoint(1, 1), self.c4dProcessStatusLabel.size()))
 		self.c4dProcessStatusTimer: QTimer = QTimer()
 		self.c4dProcessStatusTimer.setInterval(1000)
 		self.c4dProcessStatusTimer.timeout.connect(self._updateProcessStatusLabel)
+		self._updateProcessStatusLabel()
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
@@ -242,13 +244,16 @@ class C4DTile(QFrame):
 		self.c4dProcessRestartTime.start()
 	
 	def _updateProcessStatusLabel(self):
+		if c4dCacheInfo := self.GetCacheInfo():
+			c4dCacheInfo.processStatus = self.c4dProcessPID
+
 		if self.c4dProcessPID == 0: # not yet started, gray
-			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #d1d1d1;')
+			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #cccccc;')
 		if self.c4dProcessPID == -2: # started, but was killed, red
 			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #ff0000;')
 		if self.c4dProcessPID == -1 or not WinUtils.IsPIDExisting(self.c4dProcessPID): # was running, but not there anymore -> orange
-			return self.c4dProcessStatusLabel.setStyleSheet('background-color: orange;')
-		self.c4dProcessStatusLabel.setStyleSheet('background-color: #00FF00;') # started, running, green
+			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #0077ff;')
+		self.c4dProcessStatusLabel.setStyleSheet('background-color: #00ff00;') # started, running, green
 	
 	def _activateC4D(self):
 		hwnds = WinUtils.getHWNDsForPID(self.c4dProcessPID)
