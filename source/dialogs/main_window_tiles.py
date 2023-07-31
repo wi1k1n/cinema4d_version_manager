@@ -112,9 +112,6 @@ class C4DTile(QFrame):
 		# self.c4dProcess.setStandardErrorFile(QProcess.nullDevice())
 		# self.c4dProcess.setStandardInputFile(QProcess.nullDevice())
 		# self.c4dProcess.setStandardOutputFile(QProcess.nullDevice())
-		self.c4dProcessPID: int = 0 # 0 - not yet started this session, -1 - started but was closed, -2 - started but was killed
-		if c4dCacheInfo := self.GetCacheInfo():
-			self.c4dProcessPID = c4dCacheInfo.processStatus
 		self.c4dProcessArgs = []
 		self.c4dProcessRestartTime: QTimer = QTimer()
 		self.c4dProcessRestartTime.setInterval(500)
@@ -175,8 +172,8 @@ class C4DTile(QFrame):
 		self.c4dProcessStatusLabel.setGeometry(QRect(QPoint(1, 1), self.c4dProcessStatusLabel.size()))
 		self.c4dProcessStatusTimer: QTimer = QTimer()
 		self.c4dProcessStatusTimer.setInterval(1000)
-		self.c4dProcessStatusTimer.timeout.connect(self._updateProcessStatusLabel)
-		self._updateProcessStatusLabel()
+		self.c4dProcessStatusTimer.timeout.connect(self._onC4DProcessStatusTimerTimeout)
+		self._onC4DProcessStatusTimerTimeout()
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
@@ -222,7 +219,7 @@ class C4DTile(QFrame):
 
 	def _runC4D(self, args: list[str] = []):
 		# https://forum.qt.io/topic/129701/qprocess-startdetached-but-the-child-process-closes-when-the-parent-exits/6
-		if self.c4dProcessPID > 0 and WinUtils.IsPIDExisting(self.c4dProcessPID):
+		if self.GetC4DProcessPIDStatus() > 0 and WinUtils.IsPIDExisting(self.GetC4DProcessPIDStatus()):
 			QMessageBox.warning(self, self.c4d.directory, 'This Cinema 4D instance is already running..', QMessageBox.Ok)
 			return
 		
@@ -230,33 +227,48 @@ class C4DTile(QFrame):
 		self.c4dProcess.setArguments(args)
 		self.c4dProcessArgs = args
 
-		_, self.c4dProcessPID = self.c4dProcess.startDetached()
+		_, processPID = self.c4dProcess.startDetached()
+		self.SetC4DProcessPIDStatus(processPID)
 		if not self.c4dProcessStatusTimer.isActive():
 			self.c4dProcessStatusTimer.start()
 	
 	def _killC4D(self):
-		if self.c4dProcessPID > 0 and WinUtils.IsPIDExisting(self.c4dProcessPID):
-			WinUtils.KillProcessByPID(self.c4dProcessPID)
-			self.c4dProcessPID = -2
+		if self.GetC4DProcessPIDStatus() > 0 and WinUtils.IsPIDExisting(self.GetC4DProcessPIDStatus()):
+			WinUtils.KillProcessByPID(self.GetC4DProcessPIDStatus())
+			self.SetC4DProcessPIDStatus(-2)
 
 	def _restartC4D(self):
 		self._killC4D()
 		self.c4dProcessRestartTime.start()
-	
-	def _updateProcessStatusLabel(self):
-		if c4dCacheInfo := self.GetCacheInfo():
-			c4dCacheInfo.processStatus = self.c4dProcessPID
 
-		if self.c4dProcessPID == 0: # not yet started, gray
-			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #cccccc;')
-		if self.c4dProcessPID == -2: # started, but was killed, red
-			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #ff0000;')
-		if self.c4dProcessPID == -1 or not WinUtils.IsPIDExisting(self.c4dProcessPID): # was running, but not there anymore -> orange
-			return self.c4dProcessStatusLabel.setStyleSheet('background-color: #0077ff;')
-		self.c4dProcessStatusLabel.setStyleSheet('background-color: #00ff00;') # started, running, green
+	def SetC4DProcessPIDStatus(self, pidStatus: int): # 0 - not yet started this session, -1 - started but was closed, -2 - started but was killed
+		if c4dCacheInfo := self.GetCacheInfo():
+			c4dCacheInfo.processStatus = pidStatus
+	def GetC4DProcessPIDStatus(self) -> int:
+		if c4dCacheInfo := self.GetCacheInfo():
+			return c4dCacheInfo.processStatus
+		return 0
+	
+	def _onC4DProcessStatusTimerTimeout(self):
+		statusColorMap: dict[int, str] = {
+			0: '#cccccc', # not yet started, gray
+			-2: '#ff0000', # started, but was killed, red
+			-1: '#0077ff', # was running, but not there anymore -> blue
+			1: '#00ff00', # started, running, green
+		}
+		c4dPIDStatus: int = self.GetC4DProcessPIDStatus()
+
+		if c4dPIDStatus == 0 or c4dPIDStatus == -2:
+			return self.c4dProcessStatusLabel.setStyleSheet(f'background-color: {statusColorMap[c4dPIDStatus]};') # 0 || -2
+		
+		if c4dPIDStatus == -1 or not WinUtils.IsPIDExisting(c4dPIDStatus):
+			self.SetC4DProcessPIDStatus(-1)
+			c4dPIDStatus = -1
+
+		self.c4dProcessStatusLabel.setStyleSheet(f'background-color: {statusColorMap[min(c4dPIDStatus, 1)]};') # -1 || >0
 	
 	def _activateC4D(self):
-		hwnds = WinUtils.getHWNDsForPID(self.c4dProcessPID)
+		hwnds = WinUtils.getHWNDsForPID(self.GetC4DProcessPIDStatus())
 		c4dMainWindowRE = re.compile(f'^Cinema 4D {self.c4d.GetVersionString()} *')
 		mainWindowHWNDs = [hwnd for hwnd in hwnds if c4dMainWindowRE.match(WinUtils.getWindowTitleByHandle(hwnd))]
 		if len(mainWindowHWNDs) != 1:

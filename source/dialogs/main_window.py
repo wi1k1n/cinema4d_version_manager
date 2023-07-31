@@ -182,6 +182,7 @@ class MainWindow(QMainWindow):
 			'paths': ('Group by search &folders', None, 'Ctrl+G,Ctrl+F'),
 			'version': ('Group by &version', None, 'Ctrl+G,Ctrl+V'),
 			'tag': ('Group by &tag', None, 'Ctrl+G,Ctrl+T'),
+			'status': ('Group by &status', None, 'Ctrl+G,Ctrl+S'),
 		}
 		# for tag in self.GetTags():
 		# 	actionsGroupingDict[f'tag:{tag.uuid}'] = (f'Group by tag \'{tag.name}\'', tag.color)
@@ -348,6 +349,7 @@ class MainWindow(QMainWindow):
 	def updateTilesWidget(self, newC4DEntries: list[C4DInfo] | None = None):
 		c4dEntries: list[C4DInfo] = newC4DEntries if newC4DEntries else self.c4dTabTiles.GetC4DEntries()
 
+		# TODO: Below looks so much like code repetition.. clean it up!
 		# Group first
 		c4dGroups: list[C4DTileGroup] = list()
 		groupingKey, isAscending = self._getGrouping()
@@ -393,6 +395,25 @@ class MainWindow(QMainWindow):
 			if '' in idxMap:
 				c4dGroups.append(C4DTileGroup(idxMap[''], 'No tags'))
 			# c4dGroups = [C4DTileGroup(indices, self.GetTag(tagUuid).name if tagUuid else 'None') for tagUuid, indices in idxMap.items() if self.GetTag(tagUuid) or tagUuid == '']
+			
+		elif groupingKey == 'status':
+			keyMapNames: dict[int, str] = {
+				0: 'Not started yet',
+				-2: 'Killed',
+				-1: 'Closed',
+				1: 'Running',
+			}
+			idxMap: dict[str, list[int]] = dict() # tag uuid -> indices
+			for c4dIdx, c4dEntry in enumerate(c4dEntries):
+				c4dCacheInfo: C4DCacheInfo = self.c4dTabTiles.GetCacheInfo(c4dEntry.directory)
+				if not c4dCacheInfo:
+					continue
+				statusKey: int = c4dCacheInfo.processStatus if c4dCacheInfo.processStatus <= 0 else 1 # if status > 0, it's PID -> different for all c4d entries
+				if statusKey not in idxMap: idxMap[statusKey] = list()
+				idxMap[statusKey].append(c4dIdx)
+			idxMapKeys = [key for key in keyMapNames.keys() if key in idxMap]
+			availableStatusKeys: list[str] = [idxMapKeys[i] for i in sorted(list(range(len(idxMap))), reverse=isAscending)]
+			c4dGroups = [C4DTileGroup(idxMap[statusKey], keyMapNames[statusKey]) for statusKey in availableStatusKeys]
 		
 		# Sort
 		# c4dEntries.sort(key=lambda x: GetFolderTimestampCreated(x.GetPathFolderRoot()))

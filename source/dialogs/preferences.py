@@ -21,7 +21,8 @@ from PyQt5.QtWidgets import (
 	QSizePolicy,
 	QGroupBox,
 	QShortcut,
-	QMessageBox
+	QMessageBox,
+	QComboBox,
 )
 
 from version import *
@@ -212,6 +213,10 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout.addRow(QCheckBox('Unused folded group'))
 		grpTilesLayout.addRow(QCheckBox('Show note on tile'))
 		grpTilesLayout.addRow(QCheckBox('Show note: only show first line'))
+		
+		comboC4DStatusGrouping: QComboBox = QComboBox(self)
+		comboC4DStatusGrouping.addItems(['Touched / Untouched', 'Separate statuses'])
+		grpTilesLayout.addRow(QLabel('C4D "Grouping by status" mode:'), comboC4DStatusGrouping)
 
 		##### Main layout
 		mainLayout: QVBoxLayout = QVBoxLayout()
