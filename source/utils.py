@@ -1,4 +1,4 @@
-import os, re, datetime as dt, uuid, json
+import os, re, datetime as dt, uuid, json, psutil, signal
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
@@ -29,6 +29,13 @@ def OpenURL(url: str) -> None:
 
 def GetFolderTimestampCreated(path: str) -> dt.datetime:
 	return dt.datetime.fromtimestamp(os.stat(path).st_ctime)
+
+def IsPIDExisting(pid: int) -> bool:
+	return psutil.pid_exists(pid)
+
+def KillProcessByPID(pid: int):
+	if IsPIDExisting(pid):
+	    os.kill(pid, signal.SIGTERM)
 
 # Tries to cast given value to type, falls back to default if error
 def SafeCast(val, to_type, default=None):

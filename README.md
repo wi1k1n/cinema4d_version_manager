@@ -21,6 +21,17 @@
 	* layouts and layout behavior
 	* saving/loading preferences
 	* functionality: app behavior reflects settings
+	* prepare a list of c4d that are in cache but not found on system anymore
+* Tiles desktop view
+	* A separate tab with draggable c4d tiles that work with search, but doesn't have any grouping options
+* Shortcuts window in 'Help' section
+* Register global shortcut to open window from background
+	* Hide on lost focus checkbox in preferences
+
+### Bugs:
+	* Normalize slashes in paths
+
+
 * Done ~~Means to sort tags (e.g. via context menu)~~
 
 ### Group/Filter/Sort research

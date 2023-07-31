@@ -26,7 +26,8 @@ from PyQt5.QtWidgets import (
 	QProxyStyle,
 	QInputDialog,
 	QPlainTextEdit,
-	QShortcut
+	QShortcut,
+	QMessageBox,
 )
 
 # import qrc_resources
@@ -42,26 +43,26 @@ class C4DTileGroup:
 		self.indices = indices
 		self.name = name
 
-# TODO: here for now, please remove once not needed!
-class C4DTile2(QWidget):
-	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
-		super().__init__(parent)
+# # TODO: here for now, please remove once not needed!
+# class C4DTile2(QWidget):
+# 	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
+# 		super().__init__(parent)
 
-		self.setFixedSize(100, 100)
-		self.pixMap: QPixmap = QPixmap(os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
+# 		self.setFixedSize(100, 100)
+# 		self.pixMap: QPixmap = QPixmap(os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
 		
 
-	def paintEvent(self, evt: QPaintEvent) -> None:
-		p: QPainter = QPainter(self)
+# 	def paintEvent(self, evt: QPaintEvent) -> None:
+# 		p: QPainter = QPainter(self)
 
-		p.fillRect(self.rect(), QBrush(Qt.red, Qt.Dense5Pattern))
+# 		p.fillRect(self.rect(), QBrush(Qt.red, Qt.Dense5Pattern))
 
-		p.drawPixmap(QRect(0, 0, 60, 60), self.pixMap)
+# 		p.drawPixmap(QRect(0, 0, 60, 60), self.pixMap)
 
-		p.setFont(QFont('Comic', 18))
-		p.drawText(self.rect(), Qt.AlignLeft | Qt.AlignVCenter, 'Hello world!')
+# 		p.setFont(QFont('Comic', 18))
+# 		p.drawText(self.rect(), Qt.AlignLeft | Qt.AlignVCenter, 'Hello world!')
 
-		return super().paintEvent(evt)
+# 		return super().paintEvent(evt)
 
 class NoteEditorDialog(QDialog):
 	def __init__(self, title: str = 'Edit text', initialText: str = '', parent: QWidget | None = None) -> None:
@@ -105,6 +106,13 @@ class C4DTile(QFrame):
 		super().__init__(parent)
 
 		self.c4d: C4DInfo = c4d
+
+		self.c4dProcess: QProcess = QProcess()
+		# self.c4dProcess.setStandardErrorFile(QProcess.nullDevice())
+		# self.c4dProcess.setStandardInputFile(QProcess.nullDevice())
+		# self.c4dProcess.setStandardOutputFile(QProcess.nullDevice())
+		self.c4dProcess.finished.connect(lambda evt: print('finished'))
+		self.c4dProcessPID: int = 0
 
 		self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
 		self.setLineWidth(1)
@@ -193,12 +201,20 @@ class C4DTile(QFrame):
 
 	def _runC4D(self, args: list[str] = []):
 		# https://forum.qt.io/topic/129701/qprocess-startdetached-but-the-child-process-closes-when-the-parent-exits/6
-		self.p: QProcess = QProcess()
-		print(self.p.startDetached(self.c4d.GetPathExecutable(), args))
-		self.p.setStandardErrorFile(QProcess.nullDevice())
-		self.p.setStandardInputFile(QProcess.nullDevice())
-		self.p.setStandardOutputFile(QProcess.nullDevice())
-		self.p.setProcessState(QProcess.NotRunning)
+		if self.c4dProcessPID and IsPIDExisting(self.c4dProcessPID):
+			QMessageBox.warning(self, self.c4d.directory, 'This Cinema 4D instance is already running..', QMessageBox.Ok)
+			return
+		
+		self.c4dProcess.setProgram(self.c4d.GetPathExecutable())
+		self.c4dProcess.setArguments(args)
+
+		started, self.c4dProcessPID = self.c4dProcess.startDetached()
+		print(started, self.c4dProcessPID)
+	
+	def _killC4D(self):
+		if self.c4dProcessPID and IsPIDExisting(self.c4dProcessPID):
+			KillProcessByPID(self.c4dProcessPID)
+			self.c4dProcessPID = 0
 
 	def _setNote(self, text: str):
 		ci: C4DCacheInfo = self.GetCacheInfo()
@@ -230,6 +246,7 @@ class C4DTile(QFrame):
 
 		self.actionActivateC4D = QAction('Activate C4D') # https://stackoverflow.com/questions/2090464/python-window-activation
 		self.actionKillC4D = QAction('Kill C4D')
+		self.actionKillC4D.triggered.connect(self._killC4D)
 		
 		self.actionOpenFolder = QAction('Open folder')
 		self.actionOpenFolder.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderRoot()))
