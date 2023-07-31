@@ -107,12 +107,18 @@ class C4DTile(QFrame):
 
 		self.c4d: C4DInfo = c4d
 
+		# TODO: separate this in a class to not mess around with the scope here
 		self.c4dProcess: QProcess = QProcess()
 		# self.c4dProcess.setStandardErrorFile(QProcess.nullDevice())
 		# self.c4dProcess.setStandardInputFile(QProcess.nullDevice())
 		# self.c4dProcess.setStandardOutputFile(QProcess.nullDevice())
 		self.c4dProcess.finished.connect(lambda evt: print('finished'))
 		self.c4dProcessPID: int = 0
+		self.c4dProcessArgs = []
+		self.c4dProcessRestartTime: QTimer = QTimer()
+		self.c4dProcessRestartTime.setInterval(500)
+		self.c4dProcessRestartTime.setSingleShot(True)
+		self.c4dProcessRestartTime.timeout.connect(lambda: self._runC4D(self.c4dProcessArgs))
 
 		self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
 		self.setLineWidth(1)
@@ -207,14 +213,18 @@ class C4DTile(QFrame):
 		
 		self.c4dProcess.setProgram(self.c4d.GetPathExecutable())
 		self.c4dProcess.setArguments(args)
+		self.c4dProcessArgs = args
 
-		started, self.c4dProcessPID = self.c4dProcess.startDetached()
-		print(started, self.c4dProcessPID)
+		_, self.c4dProcessPID = self.c4dProcess.startDetached()
 	
 	def _killC4D(self):
 		if self.c4dProcessPID and IsPIDExisting(self.c4dProcessPID):
 			KillProcessByPID(self.c4dProcessPID)
 			self.c4dProcessPID = 0
+
+	def _restartC4D(self):
+		self._killC4D()
+		self.c4dProcessRestartTime.start()
 
 	def _setNote(self, text: str):
 		ci: C4DCacheInfo = self.GetCacheInfo()
@@ -245,8 +255,12 @@ class C4DTile(QFrame):
 		self.actionRunC4DConsole.triggered.connect(lambda: self._runC4D(['g_console=true']))
 
 		self.actionActivateC4D = QAction('Activate C4D') # https://stackoverflow.com/questions/2090464/python-window-activation
+
 		self.actionKillC4D = QAction('Kill C4D')
 		self.actionKillC4D.triggered.connect(self._killC4D)
+
+		self.actionRestartC4D = QAction('Restart C4D')
+		self.actionRestartC4D.triggered.connect(self._restartC4D)
 		
 		self.actionOpenFolder = QAction('Open folder')
 		self.actionOpenFolder.triggered.connect(lambda: OpenFolderInDefaultExplorer(self.c4d.GetPathFolderRoot()))
@@ -263,7 +277,9 @@ class C4DTile(QFrame):
 
 		menu.addAction(self.actionRunC4D)
 		menu.addAction(self.actionRunC4DConsole)
+		menu.addSeparator()
 		menu.addAction(self.actionActivateC4D)
+		menu.addAction(self.actionRestartC4D)
 		menu.addAction(self.actionKillC4D)
 		menu.addSeparator()
 		menu.addAction(self.actionOpenFolder)
