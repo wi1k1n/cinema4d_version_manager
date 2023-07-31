@@ -25,7 +25,8 @@ from PyQt5.QtWidgets import (
 	QDialogButtonBox,
 	QSizePolicy,
 	QAction,
-	QLayoutItem
+	QLayoutItem,
+	QPlainTextEdit,
 )
 
 from version import *
@@ -33,28 +34,32 @@ from gui_utils import *
 from utils import *
 
 class C4DTag:
-	def __init__(self, name: str, uuid: str = '', color: QColor | None = None) -> None:
+	def __init__(self, name: str, uuid: str = '', color: QColor | None = None, note: str = '') -> None:
 		self.uuid: str = uuid if uuid else GenerateUUID()
 		self.name: str = name
 		self.color: QColor | None = color
+		self.note: str = note
 	
 	@staticmethod
 	def FromJSON(jsonStr: dict):
 		name: str = jsonStr['name'] if 'name' in jsonStr else ''
 		color: QColor | None = QColor(jsonStr['color']) if 'color' in jsonStr and jsonStr['color'] is not None else None
 		uuid: str = jsonStr['uuid'] if 'uuid' in jsonStr else ''
+		note: str = jsonStr['note'] if 'note' in jsonStr else ''
 		if not name or not uuid:
 			print(f'ERROR Loading C4DTag: {name=} | {uuid=}')
-		return C4DTag(name, uuid, color)
+		return C4DTag(name, uuid, color, note)
 
 	def ToJSON(self) -> dict:
 		return {
 			'uuid': self.uuid,
 			'name': self.name,
 			'color': self.color.name() if self.color else None,
+			'note': self.note,
 		}
 
 class TagBubbleWidget(BubbleWidget):
+	tagChangedSignal = pyqtSignal()
 	def __init__(self, tag: C4DTag, font: QFont | None, rounding: float = 20, margin: int = 7):
 		super().__init__(tag.name, tag.color, rounding, margin)
 		if font:
@@ -68,6 +73,7 @@ class TagBubbleWidget(BubbleWidget):
 		self.tag: C4DTag = tag
 		self.SetText(tag.name)
 		self.SetColor(tag.color)
+		self.tagChangedSignal.emit()
 	
 	def GetDragMimeData(self, evt: QMouseEvent):
 		mimeData: QMimeData = QMimeData()
@@ -104,6 +110,9 @@ class TagWidget(TagBubbleWidget):
 
 		self.setContextMenuPolicy(Qt.ActionsContextMenu)
 
+		self.tagChangedSignal.connect(self._onTagChanged)
+		self._onTagChanged()
+
 	def _onMoveBackAction(self):
 		self.tagMoveRequestedSignal.emit(-1)
 	def _onMoveForwardAction(self):
@@ -112,6 +121,14 @@ class TagWidget(TagBubbleWidget):
 		self.tagEditRequestedSignal.emit()
 	def _onRemoveAction(self):
 		self.tagRemoveRequestedSignal.emit()
+	def _onTagChanged(self):
+		self.setToolTip(self._createTooltipMenuString())
+
+	def _createTooltipMenuString(self) -> str:
+		ret: str = f'[{self.tag.uuid}]'
+		if self.tag.note:
+			ret += f'\nNote: {self.tag.note}'
+		return ret
 
 class ColorPickerWidget(QWidget):
 	def __init__(self, parent: QWidget | None = None) -> None:
@@ -143,10 +160,13 @@ class ColorPickerWidget(QWidget):
 class ManageTagDialog(QDialog):
 	def __init__(self, parent: QWidget | None = None, tag: C4DTag | None = None) -> None:
 		super().__init__(parent)
+
+		self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
 		
 		self.tagUUID: str = tag.uuid if tag else ''
 		self.lineEditName: QLineEdit = QLineEdit()
 		self.colorWidget: ColorPickerWidget = ColorPickerWidget()
+		self.editNote: QPlainTextEdit = QPlainTextEdit(tag.note if tag else '', self)
 		buttons: QDialogButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 		buttons.accepted.connect(self._onAccepted)
 		buttons.rejected.connect(self._onRejected)
@@ -154,6 +174,7 @@ class ManageTagDialog(QDialog):
 		formLayout = QFormLayout()
 		formLayout.addRow(self.tr('&Name:'), self.lineEditName)
 		formLayout.addRow(self.tr('&Color:'), self.colorWidget)
+		formLayout.addRow(self.tr('&Note:'), self.editNote)
 
 		mainWidget: QWidget = QWidget()
 		mainWidget.setLayout(formLayout)
@@ -179,12 +200,13 @@ class ManageTagDialog(QDialog):
 			self.tag = C4DTag('New tag')
 
 		self.lineEditName.setText(self.tag.name)
+		self.editNote.setPlainText(self.tag.note)
 	
 	def GetTag(self) -> C4DTag:
 		return self.tag
 	
 	def GetTagEdited(self) -> C4DTag:
-		return C4DTag(self.lineEditName.text(), self.tagUUID, self.colorWidget.GetColor())
+		return C4DTag(self.lineEditName.text(), self.tagUUID, self.colorWidget.GetColor(), self.editNote.toPlainText())
 	
 	def IsEditing(self) -> bool:
 		return self.isEditing
