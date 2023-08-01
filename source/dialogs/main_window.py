@@ -88,18 +88,19 @@ class MainWindow(QMainWindow):
 		}
 
 		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget(self)
+		self.c4dTabTiles.c4dStatusChanged.connect(lambda info, status: self.updateTilesWidget()) # update tiles if c4d status was changed
 
-		self.c4dTabTableWidget: QTreeWidget = QTreeWidget(self)
-		self.c4dTabTableWidget.setColumnCount(4)
-		self.c4dTabTableWidget.setHeaderLabels(['Fav', 'Path', 'Version', 'Date'])
-		for i in range(5):
-			item: QTreeWidgetItem = QTreeWidgetItem(self.c4dTabTableWidget)
-			for j in range(self.c4dTabTableWidget.columnCount()):
-				item.setText(j, f'Col#{i}: text{j}')
+		# self.c4dTabTableWidget: QTreeWidget = QTreeWidget(self)
+		# self.c4dTabTableWidget.setColumnCount(4)
+		# self.c4dTabTableWidget.setHeaderLabels(['Fav', 'Path', 'Version', 'Date'])
+		# for i in range(5):
+		# 	item: QTreeWidgetItem = QTreeWidgetItem(self.c4dTabTableWidget)
+		# 	for j in range(self.c4dTabTableWidget.columnCount()):
+		# 		item.setText(j, f'Col#{i}: text{j}')
 
 		self.centralWidget = QTabWidget()
 		self.centralWidget.addTab(self.c4dTabTiles, "Tiles")
-		self.centralWidget.addTab(self.c4dTabTableWidget, "Table")
+		# self.centralWidget.addTab(self.c4dTabTableWidget, "Table")
 		
 		self.setCentralWidget(self.centralWidget)
 

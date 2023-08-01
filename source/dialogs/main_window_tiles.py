@@ -101,6 +101,7 @@ class C4DTile(QFrame):
 				return 0
 			return super().styleHint(hint, option, widget, returnData)
 
+	c4dStatusChanged = pyqtSignal(int)
 	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
 		self.parentTilesWidget = parent
 		super().__init__(parent)
@@ -170,10 +171,7 @@ class C4DTile(QFrame):
 		self.c4dProcessStatusLabel: QLabel = QLabel(self)
 		self.c4dProcessStatusLabel.setFixedSize(16, 16)
 		self.c4dProcessStatusLabel.setGeometry(QRect(QPoint(1, 1), self.c4dProcessStatusLabel.size()))
-		self.c4dProcessStatusTimer: QTimer = QTimer()
-		self.c4dProcessStatusTimer.setInterval(1000)
-		self.c4dProcessStatusTimer.timeout.connect(self._onC4DProcessStatusTimerTimeout)
-		self._onC4DProcessStatusTimerTimeout()
+		self.UpdateC4DStatusColor()
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
@@ -229,8 +227,6 @@ class C4DTile(QFrame):
 
 		_, processPID = self.c4dProcess.startDetached()
 		self.SetC4DProcessPIDStatus(processPID)
-		if not self.c4dProcessStatusTimer.isActive():
-			self.c4dProcessStatusTimer.start()
 	
 	def _killC4D(self):
 		if self.GetC4DProcessPIDStatus() > 0 and WinUtils.IsPIDExisting(self.GetC4DProcessPIDStatus()):
@@ -243,13 +239,17 @@ class C4DTile(QFrame):
 
 	def SetC4DProcessPIDStatus(self, pidStatus: int): # 0 - not yet started this session, -1 - started but was closed, -2 - started but was killed
 		if c4dCacheInfo := self.GetCacheInfo():
+			oldPIDStatus: int = c4dCacheInfo.processStatus
 			c4dCacheInfo.processStatus = pidStatus
+			if pidStatus != oldPIDStatus:
+				self.c4dStatusChanged.emit(pidStatus)
+
 	def GetC4DProcessPIDStatus(self) -> int:
 		if c4dCacheInfo := self.GetCacheInfo():
 			return c4dCacheInfo.processStatus
 		return 0
-	
-	def _onC4DProcessStatusTimerTimeout(self):
+
+	def UpdateC4DStatusColor(self):
 		statusColorMap: dict[int, str] = {
 			0: '#cccccc', # not yet started, gray
 			-2: '#ff0000', # started, but was killed, red
@@ -257,15 +257,7 @@ class C4DTile(QFrame):
 			1: '#00ff00', # started, running, green
 		}
 		c4dPIDStatus: int = self.GetC4DProcessPIDStatus()
-
-		if c4dPIDStatus == 0 or c4dPIDStatus == -2:
-			return self.c4dProcessStatusLabel.setStyleSheet(f'background-color: {statusColorMap[c4dPIDStatus]};') # 0 || -2
-		
-		if c4dPIDStatus == -1 or not WinUtils.IsPIDExisting(c4dPIDStatus):
-			self.SetC4DProcessPIDStatus(-1)
-			c4dPIDStatus = -1
-
-		self.c4dProcessStatusLabel.setStyleSheet(f'background-color: {statusColorMap[min(c4dPIDStatus, 1)]};') # -1 || >0
+		return self.c4dProcessStatusLabel.setStyleSheet(f'background-color: {statusColorMap[min(c4dPIDStatus, 1)]};')
 	
 	def _activateC4D(self):
 		hwnds = WinUtils.getHWNDsForPID(self.GetC4DProcessPIDStatus())
@@ -424,6 +416,9 @@ class C4DTile(QFrame):
 
 class C4DTilesWidget(QScrollArea):
 	CACHE_FILENAME = 'cache.json'
+	
+	c4dStatusChanged = pyqtSignal(C4DInfo, int)
+
 	def __init__(self, parent: QWidget | None = None) -> None:
 		self.mainWindow = parent
 		super().__init__(parent)
@@ -435,6 +430,14 @@ class C4DTilesWidget(QScrollArea):
 		self.groupLikeWidgets: list[QWidget] = list()
 
 		self.setWidgetResizable(True)
+
+		# This timer checks all running c4d instances to be non-existent anymore, updates c4dtile and emits c4dStatusChanged signal
+		self.c4dProcessStatusTimer: QTimer = QTimer()
+		self.c4dProcessStatusTimer.setInterval(1000)
+		self.c4dProcessStatusTimer.setSingleShot(False)
+		self.c4dProcessStatusTimer.setTimerType(Qt.TimerType.PreciseTimer)
+		self.c4dProcessStatusTimer.timeout.connect(self._onC4DProcessStatusTimerTimeout)
+		self.c4dProcessStatusTimer.start()
 	
 	def GetC4DEntries(self) -> list[C4DInfo]:
 		return self.c4dEntries
@@ -477,7 +480,7 @@ class C4DTilesWidget(QScrollArea):
 		if not len(self.c4dGroups):
 			self.c4dGroups = [C4DTileGroup()]
 		self._rebuildWidget()
-	
+
 	def _rebuildWidget(self):
 		if self.widget(): self.widget().deleteLater()
 
@@ -498,6 +501,7 @@ class C4DTilesWidget(QScrollArea):
 				if c4dinfo.directory not in self.c4dCacheInfo:
 					self.c4dCacheInfo[c4dinfo.directory] = C4DCacheInfo()
 				tileWidget: C4DTile = C4DTile(c4dinfo, self)
+				tileWidget.c4dStatusChanged.connect(partial(lambda info, status: self.c4dStatusChanged.emit(info, status), c4dinfo)) # inform main window if c4dtile reported c4d status change
 				innerGroupLayout.addWidget(tileWidget)
 
 			grouplikeWidget: QWidget
@@ -524,6 +528,17 @@ class C4DTilesWidget(QScrollArea):
 			self.groupLikeWidgets.append(grouplikeWidget)
 		
 		groupsLayout.addStretch()
+	
+	# on timer tick check if there're any running c4d instance closed, inform mainwindow about that through c4dStatusChanged signal
+	def _onC4DProcessStatusTimerTimeout(self):
+		for c4dInfo in self.c4dEntries:
+			if c4dInfo.directory not in self.c4dCacheInfo:
+				continue
+			c4dCacheInfo = self.c4dCacheInfo[c4dInfo.directory]
+			if c4dCacheInfo.processStatus <= 0 or WinUtils.IsPIDExisting(c4dCacheInfo.processStatus):
+				continue
+			c4dCacheInfo.processStatus = -1 # c4d instance was closed
+			self.c4dStatusChanged.emit(c4dInfo, c4dCacheInfo.processStatus)
 	
 	def _tagRemoveFromAll(self, tag: C4DTag):
 		for c4dCacheInfo in self.c4dCacheInfo.values():
