@@ -125,9 +125,10 @@ class TagWidget(TagBubbleWidget):
 		self.setToolTip(self._createTooltipMenuString())
 
 	def _createTooltipMenuString(self) -> str:
-		ret: str = f'[{self.tag.uuid}]'
+		# ret: str = f'[{self.tag.uuid}]'
+		ret: str = ''
 		if self.tag.note:
-			ret += f'\nNote: {self.tag.note}'
+			ret += ('\nNote: ' if ret else '') + self.tag.note
 		return ret
 
 class ColorPickerWidget(QWidget):

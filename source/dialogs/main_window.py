@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
 		self.c4dTabTiles.LoadCache()
 
 		self.openTagsWindow()
-		self.openFilterSortWindow()
+		# self.openFilterSortWindow()
 
 		# TODO: handle this better as a first run guidance
 		# Offer user to open settings
