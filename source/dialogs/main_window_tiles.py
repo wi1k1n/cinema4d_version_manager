@@ -228,20 +228,22 @@ class C4DTile(QFrame):
 		_, processPID = self.c4dProcess.startDetached()
 		self.SetC4DProcessPIDStatus(processPID)
 	
-	def _killC4D(self):
+	def _killC4D(self, silent: bool = False):
 		if self.GetC4DProcessPIDStatus() > 0 and WinUtils.IsPIDExisting(self.GetC4DProcessPIDStatus()):
 			WinUtils.KillProcessByPID(self.GetC4DProcessPIDStatus())
-			self.SetC4DProcessPIDStatus(-2)
+			self.SetC4DProcessPIDStatus(-2, silent)
 
 	def _restartC4D(self):
-		self._killC4D()
+		self._killC4D(True) # silent here, to not emit signal twice (getting 'RuntimeError: wrapped C/C++ object of type C4DTile has been deleted' o/w)
 		self.c4dProcessRestartTime.start()
 
-	def SetC4DProcessPIDStatus(self, pidStatus: int): # 0 - not yet started this session, -1 - started but was closed, -2 - started but was killed
+	# pidStatus: 0 - not yet started this session, -1 - started but was closed, -2 - started but was killed
+	# silent: if True doesn't emit c4dStatusChanged signal
+	def SetC4DProcessPIDStatus(self, pidStatus: int, silent: bool = False):
 		if c4dCacheInfo := self.GetCacheInfo():
 			oldPIDStatus: int = c4dCacheInfo.processStatus
 			c4dCacheInfo.processStatus = pidStatus
-			if pidStatus != oldPIDStatus:
+			if not silent and pidStatus != oldPIDStatus:
 				self.c4dStatusChanged.emit(pidStatus)
 
 	def GetC4DProcessPIDStatus(self) -> int:
@@ -538,7 +540,7 @@ class C4DTilesWidget(QScrollArea):
 			if c4dCacheInfo.processStatus <= 0 or WinUtils.IsPIDExisting(c4dCacheInfo.processStatus):
 				continue
 			c4dCacheInfo.processStatus = -1 # c4d instance was closed
-			self.c4dStatusChanged.emit(c4dInfo, c4dCacheInfo.processStatus)
+			self.c4dStatusChanged.emit(c4dInfo, c4dCacheInfo.processStatus) # TODO: not threadsafe when running on timer callback!!!
 	
 	def _tagRemoveFromAll(self, tag: C4DTag):
 		for c4dCacheInfo in self.c4dCacheInfo.values():

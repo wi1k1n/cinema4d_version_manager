@@ -398,13 +398,19 @@ class MainWindow(QMainWindow):
 			# c4dGroups = [C4DTileGroup(indices, self.GetTag(tagUuid).name if tagUuid else 'None') for tagUuid, indices in idxMap.items() if self.GetTag(tagUuid) or tagUuid == '']
 			
 		elif groupingKey == 'status':
+			USE_TOUCHED_UNTOUCHED_GROUP_SPLIT = True
 			keyMapNames: dict[int, str] = {
 				0: 'Not started yet',
 				-2: 'Killed',
 				-1: 'Closed',
 				1: 'Running',
+				# fictive keys for labels after merging
+				10: 'Untouched',
+				11: 'Touched',
 			}
-			idxMap: dict[str, list[int]] = dict() # tag uuid -> indices
+			mergingGroups: dict[int, list[int]] = {10: [0], 11: [1, -1, -2]} # newKey -> keys in idxMap that need to be merged
+			
+			idxMap: dict[int, list[int]] = dict() # PID Status -> indices
 			for c4dIdx, c4dEntry in enumerate(c4dEntries):
 				c4dCacheInfo: C4DCacheInfo = self.c4dTabTiles.GetCacheInfo(c4dEntry.directory)
 				if not c4dCacheInfo:
@@ -413,8 +419,22 @@ class MainWindow(QMainWindow):
 				if statusKey not in idxMap: idxMap[statusKey] = list()
 				idxMap[statusKey].append(c4dIdx)
 			idxMapKeys = [key for key in keyMapNames.keys() if key in idxMap]
+
+			if USE_TOUCHED_UNTOUCHED_GROUP_SPLIT:
+				mergedIdxMap: dict[int, list[int]] = dict()
+				for newKey, mergingGroup in mergingGroups.items():
+					mergingIndices: list[int] = list()
+					for mergingKey in mergingGroup:
+						if mergingKey not in idxMap:
+							continue
+						mergingIndices += idxMap[mergingKey]
+					mergedIdxMap[newKey] = mergingIndices
+				idxMap = mergedIdxMap
+			
+			idxMapKeys = [key for key in keyMapNames.keys() if key in idxMap]
 			availableStatusKeys: list[str] = [idxMapKeys[i] for i in sorted(list(range(len(idxMap))), reverse=isAscending)]
 			c4dGroups = [C4DTileGroup(idxMap[statusKey], keyMapNames[statusKey]) for statusKey in availableStatusKeys]
+
 		
 		# Sort
 		# c4dEntries.sort(key=lambda x: GetFolderTimestampCreated(x.GetPathFolderRoot()))
