@@ -418,7 +418,6 @@ class MainWindow(QMainWindow):
 				statusKey: int = c4dCacheInfo.processStatus if c4dCacheInfo.processStatus <= 0 else 1 # if status > 0, it's PID -> different for all c4d entries
 				if statusKey not in idxMap: idxMap[statusKey] = list()
 				idxMap[statusKey].append(c4dIdx)
-			idxMapKeys = [key for key in keyMapNames.keys() if key in idxMap]
 
 			if USE_TOUCHED_UNTOUCHED_GROUP_SPLIT:
 				mergedIdxMap: dict[int, list[int]] = dict()
@@ -431,8 +430,8 @@ class MainWindow(QMainWindow):
 					mergedIdxMap[newKey] = mergingIndices
 				idxMap = mergedIdxMap
 			
-			idxMapKeys = [key for key in keyMapNames.keys() if key in idxMap]
-			availableStatusKeys: list[str] = [idxMapKeys[i] for i in sorted(list(range(len(idxMap))), reverse=isAscending)]
+			idxMapKeys = [key for key in keyMapNames.keys() if key in idxMap and len(idxMap[key])]
+			availableStatusKeys: list[str] = [idxMapKeys[i] for i in sorted(list(range(len(idxMapKeys))), reverse=isAscending)]
 			c4dGroups = [C4DTileGroup(idxMap[statusKey], keyMapNames[statusKey]) for statusKey in availableStatusKeys]
 
 		
