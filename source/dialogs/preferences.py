@@ -1,4 +1,6 @@
 import os, json, typing
+from functools import partial
+
 from PyQt5.QtCore import QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings
 from PyQt5.QtGui import QFont, QDesktopServices, QIntValidator, QDragEnterEvent, QDropEvent, QKeySequence
 from PyQt5.QtWidgets import (
@@ -29,14 +31,13 @@ from version import *
 import utils
 from utils import OpenFolderInDefaultExplorer
 
-class PreferencesEntries(int):
-	SearchPaths: int = ...
-
 class PreferencesWindow(QMainWindow):
 	PREFERENCES_FILENAME = 'preferences.json'
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
+
+		self.storablePrefs: dict[str, tuple[function, function]] = dict()
 
 		self.setWindowTitle("Preferences")
 		self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint) # | Qt.WindowStaysOnTopHint) # https://pythonprogramminglanguage.com/pyqt5-window-flags/
@@ -44,7 +45,7 @@ class PreferencesWindow(QMainWindow):
 
 		self._initUI()
 
-		self.preferencesLoaded: bool = self.LoadPreferences()
+		self.LoadPreferences()
 	
 	def _initUI(self):
 		self.pathsList = QListWidget()
@@ -95,9 +96,27 @@ class PreferencesWindow(QMainWindow):
 		centralWidget.setMinimumWidth(self.width())
 		self.setCentralWidget(centralWidget)
 
-	def GetPreference(self, attr: PreferencesEntries) -> ...:
-		if attr == PreferencesEntries.SearchPaths:
-			return [self.pathsList.item(i).text() for i in range(self.pathsList.count())]
+	def GetPreference(self, attr: str) -> ...:
+		if attr not in self.storablePrefs:
+			return None
+		return self.storablePrefs[attr][0]()
+
+	def IsPreferencesLoaded(self) -> bool:
+		return hasattr(self, 'preferencesLoaded') and self.preferencesLoaded
+	
+	def _connectPreference(self, attr: str, getter, setter) -> bool:
+		self.storablePrefs[attr] = (getter, setter)
+		return True
+	
+	def _connectPreferenceSimple(self, attr: str, obj) -> bool:
+		if isinstance(obj, QCheckBox): return self._connectPreference(attr, obj.isChecked, obj.setChecked)
+		if isinstance(obj, QSlider): return self._connectPreference(attr, obj.value, obj.setValue)
+		if isinstance(obj, QComboBox): return self._connectPreference(attr, obj.currentText, obj.setCurrentText)
+		return False
+	
+	def _setPreference(self, attr: str, val):
+		if attr in self.storablePrefs:
+			self.storablePrefs[attr][1](val)
 
 	def LoadPreferences(self) -> bool:
 		# TODO: Use QSettings instead
@@ -113,11 +132,10 @@ class PreferencesWindow(QMainWindow):
 				print(f"Loading preferences: file version {data['version']}")
 			if 'preferences' in data:
 				prefs: dict = data['preferences']
-				if 'search_paths' in prefs:
-					sPaths: list[str] = prefs['search_paths']
-					self.pathsList.clear()
-					for p in sPaths:
-						self._addSearchPath(p)
+				for attr, (getter, setter) in self.storablePrefs.items():
+					if attr in prefs:
+						setter(prefs[attr])
+		self.preferencesLoaded = True
 		return True
 
 	def SavePreferences(self):
@@ -125,11 +143,8 @@ class PreferencesWindow(QMainWindow):
 		storeDict['version'] = C4DL_VERSION
 		storeDict['preferences'] = dict() # pref attributes from preferences window
 
-		# Preferences
-		prefsDict: dict = storeDict['preferences']
-		prefsDict['search_paths'] = list()
-		for p in self.GetPreference(PreferencesEntries.SearchPaths):
-			prefsDict['search_paths'].append(p)
+		for attr, (getter, setter) in self.storablePrefs.items():
+			storeDict['preferences'][attr] = getter()
 
 		prefsFilePath: str = PreferencesWindow.GetPreferencesSavePath()
 		with open(prefsFilePath, 'w') as fp:
@@ -146,8 +161,11 @@ class PreferencesWindow(QMainWindow):
 		self.contentStack.setCurrentIndex(self.categoriesWidget.currentRow())
 
 	def _createPrefGeneral(self):
+		SECTION_PREFIX = 'general_'
 		cbRunOnStartup: QCheckBox = QCheckBox('&Run on Windows startup', self)
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}run-on-startup', cbRunOnStartup)
 		cbHideOnClose: QCheckBox = QCheckBox('&Hide on close', self)
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}hide-on-close', cbHideOnClose)
 		
 		# Search depth slider
 		searchPathsDepthSlider: QSlider = QSlider(Qt.Horizontal)
@@ -158,6 +176,7 @@ class PreferencesWindow(QMainWindow):
 		searchPathsDepthSlider.setTickPosition(QSlider.TicksBelow)
 		searchPathsDepthSlider.setTickInterval(1)
 		searchPathsDepthSlider.setDisabled(True)
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}search-depth', searchPathsDepthSlider)
 
 		layout: QFormLayout = QFormLayout()
 		layout.addWidget(cbRunOnStartup)
@@ -171,6 +190,7 @@ class PreferencesWindow(QMainWindow):
 		return prefEntriesWidget
 
 	def _createPrefAppearance(self):
+		SECTION_PREFIX = 'appearance_'
 		### Group 'Application'
 		groupApplication: QGroupBox = QGroupBox('Application')
 
@@ -185,6 +205,7 @@ class PreferencesWindow(QMainWindow):
 		guiSizeSLider.setValue(2)
 		guiSizeSLider.setTickPosition(QSlider.TicksBelow)
 		guiSizeSLider.setTickInterval(1)
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}gui-scale', guiSizeSLider)
 		# guiSizeSLider.setMaximumWidth(128)
 		guiSizeSLider.setDisabled(True)
 		grpApplicationLayout.addRow(QLabel('GUI size'), guiSizeSLider)
@@ -195,27 +216,33 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout: QFormLayout = QFormLayout()
 		groupTiles.setLayout(grpTilesLayout)
 		
-		cbC4DIcon: QCheckBox = QCheckBox('Show C4D icon')
 		cbC4DIconRonalds: QCheckBox = QCheckBox('Use Ronald\'s icon set')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}gui-scale', cbC4DIconRonalds)
+		cbTrimC4DVersionFromFolder: QCheckBox = QCheckBox('Trim C4D version from folder name')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-trim-c4d-version', cbTrimC4DVersionFromFolder)
+		cbShowTimestamp: QCheckBox = QCheckBox('Show timestamp')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-timestamp', cbShowTimestamp)
+		cbTimestampFormat: QCheckBox = QCheckBox('Timestamp format')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-timestamp-format', cbTimestampFormat)
+		cbUnusedFolderGroup: QCheckBox = QCheckBox('Unused folded group')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}unused-folded-group', cbUnusedFolderGroup)
+		cbShoNoteOnTile: QCheckBox = QCheckBox('Show note on tile')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note', cbShoNoteOnTile)
+		cbShowNoteOnTileFirstLineOnly: QCheckBox = QCheckBox('Show note: only show first line')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note-first-line', cbShowNoteOnTileFirstLineOnly)
 
-		def ronaldsEnabledHandler(evt):
-			isChecked: bool = cbC4DIcon.isChecked()
-			cbC4DIconRonalds.setEnabled(isChecked)
-			if not isChecked:
-				cbC4DIconRonalds.setChecked(False)
-		cbC4DIcon.stateChanged.connect(ronaldsEnabledHandler)
-		
-		grpTilesLayout.addRow(cbC4DIcon)
 		grpTilesLayout.addRow(cbC4DIconRonalds)
-		grpTilesLayout.addRow(QCheckBox('Trim C4D version from folder name'))
-		grpTilesLayout.addRow(QCheckBox('Show timestamp'))
-		grpTilesLayout.addRow(QCheckBox('Timestamp format'))
-		grpTilesLayout.addRow(QCheckBox('Unused folded group'))
-		grpTilesLayout.addRow(QCheckBox('Show note on tile'))
-		grpTilesLayout.addRow(QCheckBox('Show note: only show first line'))
+		grpTilesLayout.addRow(cbTrimC4DVersionFromFolder)
+		grpTilesLayout.addRow(cbShowTimestamp)
+		grpTilesLayout.addRow(cbTimestampFormat)
+		grpTilesLayout.addRow(cbUnusedFolderGroup)
+		grpTilesLayout.addRow(cbShoNoteOnTile)
+		grpTilesLayout.addRow(cbShowNoteOnTileFirstLineOnly)
 		
 		comboC4DStatusGrouping: QComboBox = QComboBox(self)
 		comboC4DStatusGrouping.addItems(['Touched / Untouched', 'Separate statuses'])
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}grouping-status-separately', comboC4DStatusGrouping)
+
 		grpTilesLayout.addRow(QLabel('C4D "Grouping by status" mode:'), comboC4DStatusGrouping)
 
 		##### Main layout
@@ -230,6 +257,7 @@ class PreferencesWindow(QMainWindow):
 		return main
 
 	def _createCustomization(self):
+		SECTION_PREFIX = 'customization_'
 		prefEntriesLayout = QVBoxLayout()
 		prefEntriesLayout.addWidget(QLabel("Customization"))
 		prefEntriesLayout.addWidget(QLabel("TODO: Customization preferences, e.g. context menu entries with different set of g_ arguments"))
@@ -242,6 +270,15 @@ class PreferencesWindow(QMainWindow):
 
 	def _createPrefPaths(self):
 		# TODO: please refactor this mess! Should be abstracted away into a separate 'SearchPathsListWidget' class to keep mess outside!
+		SECTION_PREFIX = 'search-paths_'
+		def prefConnectPathListGetter():
+			return [self.pathsList.item(i).text() for i in range(self.pathsList.count())]
+		def prefConnectPathListSetter(val: list[str]):
+			self.pathsList.clear()
+			for v in val:
+				self._addSearchPath(v)
+		self._connectPreference(f'{SECTION_PREFIX}search-paths', prefConnectPathListGetter, prefConnectPathListSetter)
+
 		self.pathsList.setDragDropMode(QAbstractItemView.InternalMove)
 
 		def _addSearchPath(path: str):

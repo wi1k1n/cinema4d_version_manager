@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import (
 )
 
 # import qrc_resources
-from dialogs.preferences import PreferencesWindow, PreferencesEntries
+from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
 from dialogs.help import HelpWindow
 from dialogs.tags import TagsWindow, C4DTag
@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
 		# Offer user to open settings
 		self.openPreferencesFlag: bool = False
 		if dlg:= self._getDialog('preferences'):
-			if not dlg.preferencesLoaded:
+			if not dlg.IsPreferencesLoaded():
 				msg = QMessageBox(QMessageBox.Information, 'Empty preferences..', 'This seems to be a first run of the app. Do you want to start with configuring Search Paths in preferences?', QMessageBox.Yes | QMessageBox.No)
 				if msg.exec_() == QMessageBox.Yes:
 					# find search paths idx
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
 	def rescan(self):
 		dlg: PreferencesWindow | None = self._getDialog('preferences')
 		if not dlg: return print('ERROR: Preferences dialog wasn\'t found!')
-		searchPaths: list[str] = dlg.GetPreference(PreferencesEntries.SearchPaths)
+		searchPaths: list[str] = dlg.GetPreference('search-paths_search-paths')
 
 		c4dEntries: list[C4DInfo] = list()
 		for path in searchPaths:
@@ -356,7 +356,7 @@ class MainWindow(QMainWindow):
 		groupingKey, isAscending = self._getGrouping()
 		if groupingKey == 'paths':
 			searchPaths: list[str] = list()
-			if dlg := self._getDialog('preferences'): searchPaths = dlg.GetPreference(PreferencesEntries.SearchPaths)
+			if dlg := self._getDialog('preferences'): searchPaths = dlg.GetPreference('search-paths_search-paths')
 			idxMap: dict[str, list[int]] = {sp: list() for sp in searchPaths}
 			for c4dIdx, c4dEntry in enumerate(c4dEntries):
 				for sp in searchPaths:
