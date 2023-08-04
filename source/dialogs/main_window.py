@@ -155,7 +155,7 @@ class MainWindow(QMainWindow):
 		self.actionTags.setShortcut("Ctrl+T")
 
 		self.actionFiltersort = QAction("Filte&r/Sort", self)
-		self.actionFiltersort.setShortcut("Ctrl+R")
+		self.actionFiltersort.setShortcut("Ctrl+F")
 
 		self.actionFoldAll = QAction("Toggle &fold all", self)
 		self.actionFoldAll.setShortcut("Ctrl+G,Ctrl+G")

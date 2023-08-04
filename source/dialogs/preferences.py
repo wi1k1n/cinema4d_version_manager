@@ -278,7 +278,7 @@ class PreferencesWindow(QMainWindow):
 		SECTION_PREFIX = 'customization_'
 		prefEntriesLayout = QVBoxLayout()
 		prefEntriesLayout.addWidget(QLabel("Customization"))
-		prefEntriesLayout.addWidget(QLabel("TODO: Customization preferences, e.g. context menu entries with different set of g_ arguments"))
+		prefEntriesLayout.addWidget(QLabel(f"TODO: Customization preferences,{os.linesep}e.g. context menu entries with different set of g_ arguments"))
 		prefEntriesLayout.addStretch()
 
 		prefEntriesWidget = QWidget()

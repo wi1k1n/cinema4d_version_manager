@@ -48,6 +48,15 @@ class FilterSortWindow(QDockWidget):
 
 		mainLayout: QVBoxLayout = QVBoxLayout()
 
+		# TODO: Temporarily blocked to get some checkpoint in development
+		self.setDisabled(True)
+		self.disabledDisclaimer = QLabel(f'!!! WARNING !!!{os.linesep}Search / Filter / Sort functionality is not available in this release')
+		self.disabledDisclaimer.setStyleSheet('color: rgb(160, 0, 0)')
+		disclFont = self.disabledDisclaimer.font()
+		disclFont.setPixelSize(12)
+		self.disabledDisclaimer.setFont(disclFont)
+		mainLayout.addWidget(self.disabledDisclaimer)
+
 		presetsWidget: QWidget = self._createPresetsWidget()
 		searchWidget: QWidget = self._createSearchWidget()
 		filterWidget: QWidget = self._createFilterWidget()
