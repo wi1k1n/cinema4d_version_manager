@@ -1,4 +1,5 @@
 import os, re, datetime as dt, uuid, json, psutil, signal, win32process, win32gui, ctypes, win32con
+from typing import Any
 
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
@@ -164,6 +165,12 @@ class C4DInfo:
 	def GetVersionMajor(self, formatted: bool = True) -> str:
 		major: str = self.version[0]
 		return ('R' if len(major) != 4 and formatted else '') + major
+
+class C4DTileGroup:
+	def __init__(self, indices: list[int] = list(), name: str = '', key: Any = None) -> None:
+		self.indices = indices
+		self.name = name
+		self.key: Any = key
 
 # Tries to find corresponding preferences folder in the APPDATA directory
 def FindC4DPrefsFolder(folderPath: str) -> str | None:

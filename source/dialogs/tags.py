@@ -84,6 +84,7 @@ class TagWidget(TagBubbleWidget):
 	tagEditRequestedSignal = pyqtSignal()
 	tagRemoveRequestedSignal = pyqtSignal()
 	tagMoveRequestedSignal = pyqtSignal(int)
+	tagGroupingRequestedSignal = pyqtSignal()
 	def __init__(self, tag: C4DTag):
 		super().__init__(tag, QFont(APPLICATION_FONT_FAMILY, 18))
 		
@@ -96,6 +97,8 @@ class TagWidget(TagBubbleWidget):
 		self.actionMoveForward.triggered.connect(self._onMoveForwardAction)
 		self.actionRemove: QAction = QAction('Remove', self)
 		self.actionRemove.triggered.connect(self._onRemoveAction)
+		self.actionGrouping: QAction = QAction('Group by', self)
+		self.actionGrouping.triggered.connect(self._onGroupingAction)
 		
 		def createActionSeparator(self):
 			separator: QAction = QAction(self)
@@ -107,6 +110,8 @@ class TagWidget(TagBubbleWidget):
 		self.addAction(self.actionMoveForward)
 		self.addAction(createActionSeparator(self))
 		self.addAction(self.actionRemove)
+		self.addAction(createActionSeparator(self))
+		self.addAction(self.actionGrouping)
 
 		self.setContextMenuPolicy(Qt.ActionsContextMenu)
 
@@ -121,6 +126,8 @@ class TagWidget(TagBubbleWidget):
 		self.tagEditRequestedSignal.emit()
 	def _onRemoveAction(self):
 		self.tagRemoveRequestedSignal.emit()
+	def _onGroupingAction(self):
+		self.tagGroupingRequestedSignal.emit()
 	def _onTagChanged(self):
 		self.setToolTip(self._createTooltipMenuString())
 
@@ -228,6 +235,7 @@ class TagsWindow(QDockWidget):
 	tagEditedSignal = pyqtSignal(C4DTag)
 	tagRemovedSignal = pyqtSignal(C4DTag)
 	tagOrderChangedSignal = pyqtSignal()
+	groupingByTagRequested = pyqtSignal(C4DTag) # pyqtSignal(type(Callable[[dict[C4DTileGroup, bool]], None]))
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -293,12 +301,20 @@ class TagsWindow(QDockWidget):
 	
 	def _addTag(self, tag: C4DTag):
 		tagWidget: TagWidget = TagWidget(tag)
-		tagWidget.mouseDoubleClickEvent = partial(lambda tw, evt: self._openManageTagWindowExisting(tw), tagWidget)
+		tagWidget.mouseDoubleClickEvent = partial(self._onTagDblClick, tagWidget)
 		tagWidget.tagEditRequestedSignal.connect(partial(self._openManageTagWindowExisting, tagWidget))
 		tagWidget.tagRemoveRequestedSignal.connect(partial(self._removeTag, tagWidget.GetTag()))
 		tagWidget.tagMoveRequestedSignal.connect(partial(self._moveTag, tagWidget.GetTag()))
+		tagWidget.tagGroupingRequestedSignal.connect(partial(self._groupByTag, tagWidget.GetTag()))
 		self.tagsFlowLayout.addWidget(tagWidget)
 		self.tagWidgets.append(tagWidget)
+	
+	def _onTagDblClick(self, tagWidget: TagWidget, evt: QMouseEvent):
+		if evt.button() == Qt.LeftButton:
+			if evt.modifiers() & Qt.ControlModifier:
+				self._groupByTag(tagWidget.GetTag())
+			else:
+				self._openManageTagWindowExisting(tagWidget)
 	
 	def _getTags(self) -> list[C4DTag]:
 		return [tW.GetTag() for tW in self.tagWidgets]
@@ -331,6 +347,9 @@ class TagsWindow(QDockWidget):
 		self.tagWidgets[tagIdx], self.tagWidgets[tagIdx + dir] = self.tagWidgets[tagIdx + dir], self.tagWidgets[tagIdx]
 		self.tagsFlowLayout.update()
 		self.tagOrderChangedSignal.emit()
+	
+	def _groupByTag(self, tag: C4DTag):
+		self.groupingByTagRequested.emit(tag)
 
 	def _onManageTagAccepted(self):			
 		tag: C4DTag = self.manageTagWindow.GetTag()

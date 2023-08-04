@@ -38,10 +38,6 @@ from version import *
 from utils import *
 from gui_utils import *
 
-class C4DTileGroup:
-	def __init__(self, indices: list[int] = list(), name: str = '') -> None:
-		self.indices = indices
-		self.name = name
 
 # # TODO: here for now, please remove once not needed!
 # class C4DTile2(QWidget):
@@ -460,16 +456,21 @@ class C4DTilesWidget(QScrollArea):
 	def GetTagBindings(self) -> dict[str, list[str]]:
 		return {c4d: ci.tagUuids for c4d, ci in self.c4dCacheInfo.items()}
 	
-	def GetGroupsVisibility(self) -> list[tuple[C4DTileGroup, bool]]:
-		return [(self.c4dGroups[idx], grpWidget.layout().itemAt(0).widget().isVisible()) for idx, grpWidget in enumerate(self.groupLikeWidgets) if grpWidget.layout().count()]
+	def GetGroupsVisibility(self) -> dict[C4DTileGroup, bool]:
+		return {self.c4dGroups[idx]: grpWidget.layout().itemAt(0).widget().isVisible() for idx, grpWidget in enumerate(self.groupLikeWidgets) if grpWidget.layout().count()}
 	
-	def SetGroupsVisibility(self, visibleStates: list[bool]):
+	def SetGroupsVisibility(self, visibleStates: dict[C4DTileGroup, bool]):
 		for idx, groupLikeWidget in enumerate(self.groupLikeWidgets):
 			if not isinstance(groupLikeWidget, QGroupBox): continue
-			groupLikeWidget.setChecked(visibleStates[idx])
+
+			grp: C4DTileGroup = self.c4dGroups[idx]
+			if grp not in visibleStates: continue
+
+			groupLikeWidget.setChecked(visibleStates[grp])
 			if not groupLikeWidget.layout().count(): continue
+			
 			innerGroupWidget: QWidget = groupLikeWidget.layout().itemAt(0).widget()
-			C4DTilesWidget.SetWidgetVisible(innerGroupWidget, visibleStates[idx])
+			C4DTilesWidget.SetWidgetVisible(innerGroupWidget, visibleStates[grp])
 	
 	@staticmethod
 	def SetWidgetVisible(containerWidget: QWidget, setVisible: bool):

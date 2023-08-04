@@ -21,17 +21,19 @@
 		* [ ] tag contains arguments to run c4d with
 		* [ ] tag contains sheets of arguments that are injected into context menu
 		* [ ] can be custom scripts to run before running c4d (overkill!)
+	* [✔] group to the tag in the tag manager (change grouping to "group by tag", + fold all except selected tag)
 * [ ] Auto saving options
 	* [ ] Store last selected group/filter/sort settings
 	* [ ] Store last layout (tags & filter/sort window states)
 	* [ ] Store device where the window is positioned
 * [○] Preferences
 	* [○] layouts and layout behavior
-	* [○] saving/loading preferences
+	* [✔] saving/loading preferences
 	* [○] functionality: app behavior reflects settings
 	* [ ] prepare a list of c4d that are in cache but not found on system anymore
 	* [ ] Register global shortcut to open window from background
 		* [ ] Hide on lost focus checkbox in preferences (have doubts it'd be convenient, may be worth testing)
+	* [ ] custom regex instead of "trim c4d version"
 * [ ] Tiles desktop view
 	* [ ] A separate tab with draggable c4d tiles that work with search, but doesn't have any grouping options
 * [ ] Shortcuts window in 'Help' section

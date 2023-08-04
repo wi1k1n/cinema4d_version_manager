@@ -113,6 +113,7 @@ class MainWindow(QMainWindow):
 		self.dialogs['tags'].tagEditedSignal.connect(lambda tag: self.c4dTabTiles._rebuildWidget())
 		self.dialogs['tags'].tagRemovedSignal.connect(lambda tag: self.c4dTabTiles._tagRemoveFromAll(tag))
 		self.dialogs['tags'].tagOrderChangedSignal.connect(lambda: self.updateTilesWidget())
+		self.dialogs['tags'].groupingByTagRequested.connect(self._groupByTagRequested)
 
 		self.rescan()
 		self.c4dTabTiles.LoadCache()
@@ -123,7 +124,7 @@ class MainWindow(QMainWindow):
 		# TODO: handle this better as a first run guidance
 		# Offer user to open settings
 		self.openPreferencesFlag: bool = False
-		if dlg:= self._getDialog('preferences'):
+		if dlg := self._getDialog('preferences'):
 			if not dlg.IsPreferencesLoaded():
 				msg = QMessageBox(QMessageBox.Information, 'Empty preferences..', 'This seems to be a first run of the app. Do you want to start with configuring Search Paths in preferences?', QMessageBox.Yes | QMessageBox.No)
 				if msg.exec_() == QMessageBox.Yes:
@@ -331,9 +332,19 @@ class MainWindow(QMainWindow):
 			return dlg
 		return None
 	
+	def _groupByTagRequested(self, tag: C4DTag):
+		if tag is None:
+			return
+		self._changeGrouping('tag')
+		visibilities: dict[C4DTileGroup, bool] = self.c4dTabTiles.GetGroupsVisibility()
+		if visibleGroups := [grp for grp in visibilities.keys() if grp.key == tag]:
+			grp: C4DTileGroup = visibleGroups[0]
+			return self.c4dTabTiles.SetGroupsVisibility({k: k == grp for k in visibilities.keys()})
+
 	def _toggleFoldAllC4DGroups(self):
-		visibilities: list[tuple[C4DTileGroup, bool]] = self.c4dTabTiles.GetGroupsVisibility()
-		return self.c4dTabTiles.SetGroupsVisibility([not all([v for grp, v in visibilities])] * len(visibilities))
+		visibilities: dict[C4DTileGroup, bool] = self.c4dTabTiles.GetGroupsVisibility()
+		val: bool = all(visibilities.values())
+		return self.c4dTabTiles.SetGroupsVisibility({grp: not val for grp in visibilities.keys()})
 
 	def rescan(self):
 		dlg: PreferencesWindow | None = self._getDialog('preferences')
@@ -357,44 +368,44 @@ class MainWindow(QMainWindow):
 		if groupingKey == 'paths':
 			searchPaths: list[str] = list()
 			if dlg := self._getDialog('preferences'): searchPaths = dlg.GetPreference('search-paths_search-paths')
-			idxMap: dict[str, list[int]] = {sp: list() for sp in searchPaths}
+			idxMap: dict[str, list[int]] = {sp: list() for sp in searchPaths} # path -> indices
 			for c4dIdx, c4dEntry in enumerate(c4dEntries):
 				for sp in searchPaths:
 					if c4dEntry.directory.startswith(sp):
 						idxMap[sp].append(c4dIdx)
 			availablePaths: list[str] = [k for k in idxMap.keys() if idxMap[k]]
 			availablePaths.sort(reverse=not isAscending)
-			c4dGroups = [C4DTileGroup(idxMap[path], path) for path in availablePaths]
+			c4dGroups = [C4DTileGroup(idxMap[path], path, path) for path in availablePaths]
 
 		elif groupingKey == 'version':
-			idxMap: dict[str, list[int]] = dict()
+			idxMap: dict[str, tuple[list[int], str]] = dict() # major_version -> <indices, non-formatted_version>
 			for c4dIdx, c4dEntry in enumerate(c4dEntries):
 				vMaj: str = c4dEntry.GetVersionMajor()
-				if vMaj not in idxMap: idxMap[vMaj] = list()
-				idxMap[vMaj].append(c4dIdx)
+				if vMaj not in idxMap: idxMap[vMaj] = (list(), c4dEntry.GetVersionString(False, True))
+				idxMap[vMaj][0].append(c4dIdx)
 			availableVersions: list[str] = [k for k in idxMap.keys()]
 			availableVersions.sort(reverse=isAscending, key=lambda x: SafeCast(x[1:] if x.lower().startswith('r') else x, int, 0))
-			c4dGroups = [C4DTileGroup(idxMap[version], version) for version in availableVersions]
+			c4dGroups = [C4DTileGroup(idxMap[version][0], version, idxMap[version][1]) for version in availableVersions]
 
 		elif groupingKey == 'tag':
 			c4dTagBinding: dict[str, list[str]] = self.c4dTabTiles.GetTagBindings()
-			idxMap: dict[str, list[int]] = dict() # tag uuid -> indices
+			idxMap: dict[str, tuple[list[int], C4DTag | None]] = dict() # tag uuid -> <indices, tag | None>
 			for c4dIdx, c4dEntry in enumerate(c4dEntries):
 				tagUuids: list[str] = c4dTagBinding[c4dEntry.directory]
 				if not len(tagUuids):
-					if '' not in idxMap: idxMap[''] = list()
-					idxMap[''].append(c4dIdx)
+					if '' not in idxMap: idxMap[''] = (list(), None)
+					idxMap[''][0].append(c4dIdx)
 				else:
 					for tagUuid in tagUuids:
-						if self.GetTag(tagUuid):
-							if tagUuid not in idxMap: idxMap[tagUuid] = list()
-							idxMap[tagUuid].append(c4dIdx)
+						if tag := self.GetTag(tagUuid):
+							if tagUuid not in idxMap: idxMap[tagUuid] = (list(), tag)
+							idxMap[tagUuid][0].append(c4dIdx)
 			# Sort groups to correspond order in tags manager
 			for tag in self.GetTags() if isAscending else reversed(self.GetTags()):
 				if tag.uuid in idxMap:
-					c4dGroups.append(C4DTileGroup(idxMap[tag.uuid], tag.name))
+					c4dGroups.append(C4DTileGroup(idxMap[tag.uuid][0], tag.name, idxMap[tag.uuid][1]))
 			if '' in idxMap:
-				c4dGroups.append(C4DTileGroup(idxMap[''], 'No tags'))
+				c4dGroups.append(C4DTileGroup(idxMap[''][0], 'No tags'))
 			# c4dGroups = [C4DTileGroup(indices, self.GetTag(tagUuid).name if tagUuid else 'None') for tagUuid, indices in idxMap.items() if self.GetTag(tagUuid) or tagUuid == '']
 			
 		elif groupingKey == 'status':
