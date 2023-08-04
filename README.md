@@ -34,6 +34,10 @@
 	* [ ] Register global shortcut to open window from background
 		* [ ] Hide on lost focus checkbox in preferences (have doubts it'd be convenient, may be worth testing)
 	* [ ] custom regex instead of "trim c4d version"
+* [ ] Regular Tiles view
+	* [ ] double click on empty space -> default grouping (set default in preferences)
+	* [ ] try saving scrollbar position, such that after updatetiles it stays where it was
+	* [ ] Revisit modifiers with clicks -> unify UX-wise
 * [ ] Tiles desktop view
 	* [ ] A separate tab with draggable c4d tiles that work with search, but doesn't have any grouping options
 * [ ] Shortcuts window in 'Help' section
