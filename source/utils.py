@@ -171,6 +171,14 @@ class C4DTileGroup:
 		self.indices = indices
 		self.name = name
 		self.key: Any = key
+	
+	def __eq__(self, other) -> bool:
+		if isinstance(other, C4DTileGroup):
+			return self.key == other.key
+		raise NotImplemented('C4DTileGroup: cannot compare')
+	
+	def __hash__(self) -> int:
+		return hash(self.key)
 
 # Tries to find corresponding preferences folder in the APPDATA directory
 def FindC4DPrefsFolder(folderPath: str) -> str | None:

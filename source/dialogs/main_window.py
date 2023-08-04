@@ -1,30 +1,20 @@
 import sys, os, typing, datetime as dt
 from subprocess import Popen, PIPE
 from functools import partial
+from typing import Callable
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import QObject, Qt, QEvent, pyqtSignal, QProcess, QPoint, QRect
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent, QKeyEvent, QCloseEvent
+from PyQt5.QtCore import (
+    QObject, Qt, QEvent, pyqtSignal, QProcess, QPoint, QRect
+)
+from PyQt5.QtGui import (
+    QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent,
+    QDragEnterEvent, QKeyEvent, QCloseEvent
+)
 from PyQt5.QtWidgets import (
-	QApplication,
-	QLabel,
-	QMainWindow,
-	QMenu, QMenuBar,
-	QStyle,
-	QStyleHintReturn,
-	QStyleOption,
-	QToolBar,
-	QAction,
-	QWidget,
-	QTabWidget,
-	QLayout, QVBoxLayout, QHBoxLayout,
-	QFrame,
-	QScrollArea,
-	QGroupBox,
-	QTreeWidget, QTreeWidgetItem,
-	QStatusBar,
-	QProxyStyle,
-	QMessageBox,
+	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QStyle, QStyleHintReturn, QStyleOption,
+	QToolBar, QAction, QWidget, QTabWidget, QLayout, QVBoxLayout, QHBoxLayout, QFrame,
+	QScrollArea, QGroupBox, QTreeWidget, QTreeWidgetItem, QStatusBar, QProxyStyle, QMessageBox,
 )
 
 # import qrc_resources
@@ -88,7 +78,7 @@ class MainWindow(QMainWindow):
 		}
 
 		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget(self)
-		self.c4dTabTiles.c4dStatusChanged.connect(lambda info, status: self.updateTilesWidget()) # update tiles if c4d status was changed
+		self.c4dTabTiles.c4dStatusChanged.connect(self._onC4DStatusChanged)
 
 		# self.c4dTabTableWidget: QTreeWidget = QTreeWidget(self)
 		# self.c4dTabTableWidget.setColumnCount(4)
@@ -167,7 +157,7 @@ class MainWindow(QMainWindow):
 		self.actionExit.triggered.connect(sys.exit)
 		self.actionAbout.triggered.connect(self.about)
 		self.actionHelp.triggered.connect(self.help)
-		self.actionRefresh.triggered.connect(self.updateTilesWidget)
+		self.actionRefresh.triggered.connect(lambda: self.updateTilesWidget())
 		self.actionRescan.triggered.connect(self.rescan)
 		self.actionTags.triggered.connect(self.openTagsWindow)
 		self.actionFiltersort.triggered.connect(self.openFilterSortWindow)
@@ -243,7 +233,6 @@ class MainWindow(QMainWindow):
 				return prefix
 		return ''
 	def _changeGrouping(self, groupingKey: str):
-		# print('group by key:', groupingKey)
 		newPrefix: str = MainWindow.GROUPING_MARK_ASC_PREFIX
 		# Figure out new prefix and unselect all actions to 
 		for k, action in self.actionsGrouping.items():
@@ -258,6 +247,7 @@ class MainWindow(QMainWindow):
 			if k != groupingKey: continue
 			action.setText(f'{newPrefix}{action.text()}')
 			break
+
 		self.updateTilesWidget()
 	
 	def _getGrouping(self) -> tuple[str, bool]: # <groupingKey, isAscending>
@@ -332,10 +322,15 @@ class MainWindow(QMainWindow):
 			return dlg
 		return None
 	
+	def _onC4DStatusChanged(self, info, status):
+		self.updateTilesWidget() # update tiles if c4d status was changed
+	
 	def _groupByTagRequested(self, tag: C4DTag):
 		if tag is None:
 			return
-		self._changeGrouping('tag')
+		groupingKey, _ = self._getGrouping()
+		if groupingKey != 'tag':
+			self._changeGrouping('tag')
 		visibilities: dict[C4DTileGroup, bool] = self.c4dTabTiles.GetGroupsVisibility()
 		if visibleGroups := [grp for grp in visibilities.keys() if grp.key == tag]:
 			grp: C4DTileGroup = visibleGroups[0]
@@ -358,10 +353,13 @@ class MainWindow(QMainWindow):
 			
 		self.updateTilesWidget(c4dEntries)
 	
-	def updateTilesWidget(self, newC4DEntries: list[C4DInfo] | None = None):
-		c4dEntries: list[C4DInfo] = newC4DEntries if newC4DEntries else self.c4dTabTiles.GetC4DEntries()
-
+	def updateTilesWidget(self, newC4DEntries: list[C4DInfo] | None = None, visibilityCallback: Callable[[dict[C4DTileGroup, bool]], None] | None = None):
 		# TODO: Below looks so much like code repetition.. clean it up!
+		
+		c4dEntries: list[C4DInfo] = newC4DEntries if newC4DEntries is not None else self.c4dTabTiles.GetC4DEntries()
+		currentVisibilities: dict[C4DTileGroup, bool] = self.c4dTabTiles.GetGroupsVisibility()
+		currentGrouping: str = self.oldGroupingKey if hasattr(self, 'oldGroupingKey') and self.oldGroupingKey else ''
+		
 		# Group first
 		c4dGroups: list[C4DTileGroup] = list()
 		groupingKey, isAscending = self._getGrouping()
@@ -443,13 +441,25 @@ class MainWindow(QMainWindow):
 			
 			idxMapKeys = [key for key in keyMapNames.keys() if key in idxMap and len(idxMap[key])]
 			availableStatusKeys: list[str] = [idxMapKeys[i] for i in sorted(list(range(len(idxMapKeys))), reverse=isAscending)]
-			c4dGroups = [C4DTileGroup(idxMap[statusKey], keyMapNames[statusKey]) for statusKey in availableStatusKeys]
+			c4dGroups = [C4DTileGroup(idxMap[statusKey], keyMapNames[statusKey], statusKey) for statusKey in availableStatusKeys]
 
-		
 		# Sort
 		# c4dEntries.sort(key=lambda x: GetFolderTimestampCreated(x.GetPathFolderRoot()))
 
+		# Create tiles
 		self.c4dTabTiles.updateTiles(c4dEntries, c4dGroups)
+		
+		# Handle groups visibility
+		if visibilityCallback is not None: # explicitly set what should be visible
+			visibilityFlags: dict[C4DTileGroup, bool] = {grp: True for grp in c4dGroups}
+			visibilityCallback(visibilityFlags)
+			self.c4dTabTiles.SetGroupsVisibility(visibilityFlags)
+		elif currentGrouping == groupingKey: # grouping key hasn't changed -> keep current visibilities
+			self.c4dTabTiles.SetGroupsVisibility(currentVisibilities)
+			self.currentGrouping = ''
+		
+		self.oldGroupingKey = groupingKey
+
 	
 	def GetTags(self) -> list[C4DTag]:
 		if dlgTags := self._getDialog('tags'):
