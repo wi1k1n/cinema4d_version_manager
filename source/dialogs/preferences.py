@@ -1,30 +1,16 @@
 import os, json, typing
 from functools import partial
 
-from PyQt5.QtCore import QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings
-from PyQt5.QtGui import QFont, QDesktopServices, QIntValidator, QDragEnterEvent, QDropEvent, QKeySequence
+from PyQt5.QtCore import (
+    QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings
+)
+from PyQt5.QtGui import (
+    QFont, QDesktopServices, QIntValidator, QDragEnterEvent, QDropEvent, QKeySequence
+)
 from PyQt5.QtWidgets import (
-	QLabel,
-	QMainWindow,
-	QDialog,
-	QHBoxLayout,
-	QListWidget,
-	QWidget,
-	QVBoxLayout,
-	QPushButton,
-	QListWidgetItem,
-	QStackedWidget,
-	QFileDialog,
-	QLayout,
-	QAbstractItemView,
-	QFormLayout,
-	QCheckBox,
-	QSlider,
-	QSizePolicy,
-	QGroupBox,
-	QShortcut,
-	QMessageBox,
-	QComboBox,
+	QLabel, QMainWindow, QDialog, QHBoxLayout, QListWidget, QWidget, QVBoxLayout, QPushButton,
+	QListWidgetItem, QStackedWidget, QFileDialog, QLayout, QAbstractItemView, QFormLayout,
+	QCheckBox, QSlider, QSizePolicy, QGroupBox, QShortcut, QMessageBox, QComboBox, QLineEdit
 )
 
 from version import *
@@ -180,31 +166,49 @@ class PreferencesWindow(QMainWindow):
 
 	def _createPrefGeneral(self):
 		SECTION_PREFIX = 'general_'
-		cbRunOnStartup: QCheckBox = QCheckBox('&Run on Windows startup', self)
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}run-on-startup', cbRunOnStartup, False)
+
+		# # TODO: disabled until filter / sort / search isn't implemented
+		# # Search depth slider
+		# searchPathsDepthSlider: QSlider = QSlider(Qt.Horizontal)
+		# searchPathsDepthSlider.setMinimum(1)
+		# searchPathsDepthSlider.setMaximum(5)
+		# searchPathsDepthSlider.setSingleStep(1)
+		# # searchPathsDepthSlider.setValue(2)
+		# searchPathsDepthSlider.setTickPosition(QSlider.TicksBelow)
+		# searchPathsDepthSlider.setTickInterval(1)
+		# searchPathsDepthSlider.setDisabled(True)
+		# self._connectPreferenceSimple(f'{SECTION_PREFIX}search-depth', searchPathsDepthSlider, 2)
+		# layout.addRow(QLabel('Search depth'), searchPathsDepthSlider)
+		
+		# System
+		cbRunOnStartup: QPushButton = QPushButton('&Set up run on startup', self)
+		cbRunOnStartup.clicked.connect(self._setRunOnStartup)
 		cbHideOnClose: QCheckBox = QCheckBox('&Hide on close', self)
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}hide-on-close', cbHideOnClose, False)
 		
-		# Search depth slider
-		searchPathsDepthSlider: QSlider = QSlider(Qt.Horizontal)
-		searchPathsDepthSlider.setMinimum(1)
-		searchPathsDepthSlider.setMaximum(5)
-		searchPathsDepthSlider.setSingleStep(1)
-		# searchPathsDepthSlider.setValue(2)
-		searchPathsDepthSlider.setTickPosition(QSlider.TicksBelow)
-		searchPathsDepthSlider.setTickInterval(1)
-		searchPathsDepthSlider.setDisabled(True)
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}search-depth', searchPathsDepthSlider, 2)
+		systemLayout: QFormLayout = QFormLayout()
+		systemLayout.addWidget(cbHideOnClose)
+		systemLayout.addWidget(cbRunOnStartup)
 
-		layout: QFormLayout = QFormLayout()
-		layout.addWidget(cbRunOnStartup)
-		layout.addWidget(cbHideOnClose)
-		layout.addRow(QLabel('Search depth'), searchPathsDepthSlider)
-		# layout.addStretch()
+		grpbSystem: QGroupBox = QGroupBox('System', self)
+		grpbSystem.setLayout(systemLayout)
+
+		# Keyboard
+		keyboardLayout: QFormLayout = QFormLayout()
+		leGlobalShortcut: QLineEdit = QLineEdit()
+		leGlobalShortcut.setReadOnly(True)
+		
+		systemLayout: QFormLayout = QFormLayout()
+		grpbKeyboard: QGroupBox = QGroupBox('Keyboard', self)
+		grpbKeyboard.setLayout(systemLayout)
+
+		# Main General preferences
+		prefEntriesLayout: QVBoxLayout = QVBoxLayout()
+		prefEntriesLayout.addWidget(grpbSystem)
+		prefEntriesLayout.addStretch()
 
 		prefEntriesWidget = QWidget()
-		prefEntriesWidget.setLayout(layout)
-
+		prefEntriesWidget.setLayout(prefEntriesLayout)
 		return prefEntriesWidget
 
 	def _createPrefAppearance(self):
@@ -366,6 +370,16 @@ class PreferencesWindow(QMainWindow):
 		prefEntriesWidget.setLayout(layout)
 
 		return prefEntriesWidget
+	
+	def _setRunOnStartup(self, val: int):
+		if startupPath := utils.GetStartupPath():
+			if QMessageBox.information(self, 'Instructions', 'Two folders will be opened for you.'\
+				'\nCopy executable file (Ctrl+C) from the first one, and paste a shortcut'\
+				' (Right Mouse Button -> Paste shortcut) in the second on. Do you want to continue?',
+				QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+				utils.ShowFileInDefaultExplorer(utils.GetCurrentExecutablePath())
+				utils.OpenFolderInDefaultExplorer(startupPath)
+			# utils.CreateSymlink(executablePath, os.path.join(startupPath, os.path.split(executablePath)[1])) # not enough access rights!
 
 	@staticmethod
 	def GetPreferencesSavePath():

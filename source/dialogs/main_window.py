@@ -315,6 +315,11 @@ class MainWindow(QMainWindow):
 			return None
 		return self.dialogs[dialogKey]
 	
+	def GetPreference(self, prefKey: str) -> Any:
+		if dlg := self._getDialog('preferences'):
+			return dlg.GetPreference(prefKey)
+		return None
+	
 	def _showActivateDialog(self, dialogKey: str) -> QWidget | None:
 		if dlg := self._getDialog(dialogKey):
 			dlg.show()
@@ -342,9 +347,8 @@ class MainWindow(QMainWindow):
 		return self.c4dTabTiles.SetGroupsVisibility({grp: not val for grp in visibilities.keys()})
 
 	def rescan(self):
-		dlg: PreferencesWindow | None = self._getDialog('preferences')
-		if not dlg: return print('ERROR: Preferences dialog wasn\'t found!')
-		searchPaths: list[str] = dlg.GetPreference('search-paths_search-paths')
+		searchPaths: list[str] = self.GetPreference('search-paths_search-paths')
+		if searchPaths is None: searchPaths = list()
 
 		c4dEntries: list[C4DInfo] = list()
 		for path in searchPaths:
@@ -364,8 +368,8 @@ class MainWindow(QMainWindow):
 		c4dGroups: list[C4DTileGroup] = list()
 		groupingKey, isAscending = self._getGrouping()
 		if groupingKey == 'paths':
-			searchPaths: list[str] = list()
-			if dlg := self._getDialog('preferences'): searchPaths = dlg.GetPreference('search-paths_search-paths')
+			searchPaths: list[str] = self.GetPreference('search-paths_search-paths')
+			if searchPaths is None: searchPaths = list()
 			idxMap: dict[str, list[int]] = {sp: list() for sp in searchPaths} # path -> indices
 			for c4dIdx, c4dEntry in enumerate(c4dEntries):
 				for sp in searchPaths:
@@ -476,11 +480,13 @@ class MainWindow(QMainWindow):
 			self.actionPrefs.trigger()
 
 	def closeEvent(self, evt: QCloseEvent):
-		self.hide()
-		for v in self.dialogs.values():
-			if v is not None:
-				v.hide()
-		return evt.ignore()
+		if self.GetPreference('general_hide-on-close'):
+			self.hide()
+			for v in self.dialogs.values():
+				if v is not None:
+					v.hide()
+			return evt.ignore()
+		
 		for v in self.dialogs.values():
 			if v is not None:
 				v.close()

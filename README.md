@@ -41,6 +41,7 @@
 * [ ] Tiles desktop view
 	* [ ] A separate tab with draggable c4d tiles that work with search, but doesn't have any grouping options
 * [ ] Shortcuts window in 'Help' section
+* [ ] Ctrl+Shift+B -> BugsLife -> Open issues on github/gitlab
 
 ### Bugs:
 

@@ -1,8 +1,12 @@
-import os, re, datetime as dt, uuid, json, psutil, signal, win32process, win32gui, ctypes, win32con
-from typing import Any
+import sys, os, re, uuid, json, psutil, signal, ctypes
+import datetime as dt
+import win32process, win32gui, win32con, win32api, win32com.client
+from typing import Any, Callable, TypeVar
+import keyboard
 
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, QMimeData, QProcess
 from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtWidgets import QApplication
 
 RES_FOLDER = os.path.join(os.getcwd(), 'res')
 IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
@@ -20,11 +24,54 @@ def GetPrefsFolderPath() -> str:
 	os.makedirs(path, exist_ok=True)
 	return path
 
-def GetAppDataPath() -> None:
+def GetAppDataPath() -> str:
 	return os.getenv('APPDATA')
 
+def GetStartupPath() -> str | None:
+	# https://stackoverflow.com/questions/23500274/what-exactly-does-win32com-client-dispatchwscript-shell
+	# https://stackoverflow.com/questions/27127710/find-startup-folder-in-windows-8-using-python/27130194#27130194
+	try:
+		objShell = win32com.client.Dispatch('WScript.Shell')
+		return objShell.SpecialFolders('Startup')
+	except Exception as e:
+		print(e)
+		return None
+
+def CreateSymlink(src: str, dst: str) -> bool:
+	if not os.path.isfile(src) or os.path.exists(dst):
+		return False
+	os.symlink(src, dst)
+	return True
+
+def GetCurrentExecutablePath() -> str:
+	appDir: str = ''
+	# https://stackoverflow.com/a/42615559/5765191
+	if getattr(sys, 'frozen', False):
+		# If the application is run as a bundle, the PyInstaller bootloader
+		# extends the sys module by a flag frozen=True and sets the app 
+		# path into variable _MEIPASS'.
+		appDir = sys._MEIPASS
+	else:
+		appDir = os.path.dirname(os.path.abspath(__file__))
+	return os.path.join(appDir, os.path.split(sys.argv[0])[1])
+
+def CopyFileToClipboard(src: str) -> bool:
+	if not os.path.isfile(src):
+		return False
+	data: QMimeData = QMimeData()
+	data.setUrls([QUrl.fromLocalFile(src)])
+	QApplication.clipboard().setMimeData(data)
+	return True
+
+def ShowFileInDefaultExplorer(path: str) -> None:
+	# https://stackoverflow.com/a/42815083/5765191
+	if not os.path.isfile(path):
+		return
+	QProcess().startDetached('explorer /e, /select, "' + os.path.abspath(path) + '"')
+
 def OpenFolderInDefaultExplorer(path: str) -> None:
-	QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+	if os.path.isdir(path):
+		QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
 def OpenURL(url: str) -> None:
 	QDesktopServices.openUrl(QUrl(url))
@@ -99,6 +146,14 @@ class WinUtils:
 	@staticmethod # https://stackoverflow.com/a/2791681/5765191
 	def maximizeWindow(hwnd: int):
 		win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+
+class KeyboardManager:
+	@staticmethod
+	def RegisterHotkey(hotkey: str, cb, args: list[Any]):
+		keyboard.add_hotkey(hotkey, cb, args)
+	@staticmethod
+	def UnregisterHotkey(hotkeyOrCb: str) -> bool:
+		keyboard.remove_hotkey(hotkeyOrCb)
 
 # Tries to cast given value to type, falls back to default if error
 def SafeCast(val, to_type, default=None):
