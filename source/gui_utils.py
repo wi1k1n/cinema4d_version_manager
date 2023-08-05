@@ -1,31 +1,24 @@
 import typing
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QRectF
-from PyQt5.QtGui import QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen, QPainterPath, QRegion, QCursor
-from PyQt5.QtWidgets import (
-	QLabel,
-	QMainWindow,
-	QDockWidget,
-	QDialog,
-	QHBoxLayout,
-	QListWidget,
-	QWidget,
-	QVBoxLayout,
-	QPushButton,
-	QListWidgetItem,
-	QStackedWidget,
-	QFileDialog,
-	QLayout,
-	QAbstractItemView,
-	QColorDialog,
-	QFormLayout,
-	QLineEdit,
-	QDialogButtonBox,
-	QSizePolicy,
-	QAction,
-	QLayoutItem
+from PyQt5.QtCore import (
+    Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QRectF
 )
+from PyQt5.QtGui import (
+    QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent,
+	QPainter, QColor, QPalette, QPen, QPainterPath, QRegion, QCursor
+)
+from PyQt5.QtWidgets import (
+	QLabel, QMainWindow, QDockWidget, QDialog, QHBoxLayout, QListWidget, QWidget,
+	QVBoxLayout, QPushButton, QListWidgetItem, QStackedWidget, QFileDialog,
+	QLayout, QAbstractItemView, QColorDialog, QFormLayout, QLineEdit,
+	QDialogButtonBox, QSizePolicy, QAction, QLayoutItem, QApplication
+)
+
+def GetApplication() -> QApplication:
+	if app := QtWidgets.QApplication.instance():
+		return app
+	return QtWidgets.QApplication([])
 
 # FlowLayout implementation is stolen from: https://stackoverflow.com/a/41643802/5765191
 class FlowLayout(QtWidgets.QLayout):

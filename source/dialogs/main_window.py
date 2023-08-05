@@ -61,6 +61,8 @@ class MainWindow(QMainWindow):
 	GROUPING_MARK_ASC_PREFIX: str = '▲ '
 	GROUPING_MARK_DESC_PREFIX: str = '▼ '
 
+	hideToTraySignal = pyqtSignal()
+
 	"""Main Window."""
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
@@ -485,6 +487,7 @@ class MainWindow(QMainWindow):
 			for v in self.dialogs.values():
 				if v is not None:
 					v.hide()
+			self.hideToTraySignal.emit()
 			return evt.ignore()
 		
 		for v in self.dialogs.values():

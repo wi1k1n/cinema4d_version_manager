@@ -13,6 +13,7 @@ from utils import *
 from gui_utils import *
 
 # https://stackoverflow.com/questions/46428856/how-to-make-window-fade-out-slowly-when-i-click-the-close-button-by-pyqt5
+# Animation on splash: https://stackoverflow.com/questions/22423781/using-a-gif-in-splash-screen-in-pyqt
 class FadeInOutDialog(QDialog):
 	def __init__(self, parent: QWidget | None = None):
 		super().__init__(parent)

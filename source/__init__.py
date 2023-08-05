@@ -1,5 +1,6 @@
 import sys, random, os
 from functools import partial
+from typing import List
 
 # Tweak Windows app group for the custom icon to be used instead of Python one
 try:
@@ -28,40 +29,54 @@ def testApp():
 	win.show()
 	sys.exit(app.exec_())
 
-# Extensive tutorial: https://realpython.com/python-menus-toolbars/#building-context-or-pop-up-menus-in-pyqt
-# Animation on splash: https://stackoverflow.com/questions/22423781/using-a-gif-in-splash-screen-in-pyqt
-if __name__ == "__main__":
-	# testApp()
-	version._loadBuildInfo(os.getcwd())
-	app: QApplication = QApplication(sys.argv)
+# Extensive PyQt tutorial: https://realpython.com/python-menus-toolbars/#building-context-or-pop-up-menus-in-pyqt
+class C4DVersionManagerApplication(QApplication):
+	def __init__(self, argv: List[str]) -> None:
+		super().__init__(argv)
+		
+		self.mainWindow: MainWindow = MainWindow()
+		self.mainWindow.hideToTraySignal.connect(self._hideToTray)
 
-	icon: QIcon = QIcon(os.path.join(IMAGES_FOLDER, 'icon.png'))
-	app.setWindowIcon(icon)
-	font: QFont = app.font()
-	# font.setPixelSize(16)
-	app.setFont(font)
+		self.iconApp: QIcon = QIcon(os.path.join(IMAGES_FOLDER, 'icon.png'))
+		self.setWindowIcon(self.iconApp)
+		
+		font: QFont = self.font()
+		# font.setPixelSize(16)
+		self.setFont(font)
 
-	win: MainWindow = MainWindow()
-	win.show()
-	win.FirstRunHandler()
+		self.initTray()
 
-	actionExit: QAction = QAction('Exit')
-	actionExit.triggered.connect(sys.exit)
-	trayMenu: QMenu = QMenu()
-	trayMenu.addAction(actionExit)
-
-	tray: QSystemTrayIcon = QSystemTrayIcon()
-	tray.setIcon(icon)
-	tray.setVisible(True)
-	tray.setContextMenu(trayMenu)
-
-	def trayActivated(reason):
-		if reason != QSystemTrayIcon.ActivationReason.Context and win.isHidden():
-			win.show()
-			win.activateWindow()
-			# win.restoreState()
-	tray.activated.connect(trayActivated)
+		self.mainWindow.show()
+		self.mainWindow.FirstRunHandler()
 	
+	def initTray(self):
+		actionExit: QAction = QAction('Exit')
+		actionExit.triggered.connect(sys.exit)
+		trayMenu: QMenu = QMenu()
+		trayMenu.addAction(actionExit)
+
+		self.trayIcon: QSystemTrayIcon = QSystemTrayIcon()
+		self.trayIcon.setIcon(self.iconApp)
+		self.trayIcon.setContextMenu(trayMenu)
+		self.trayIcon.activated.connect(self._activateFromTray)
+		self.trayIcon.setVisible(False)
+	
+	def _activateFromTray(self, reason):
+		if reason != QSystemTrayIcon.ActivationReason.Context and self.mainWindow.isHidden():
+			self.mainWindow.show()
+			self.mainWindow.activateWindow()
+			self.trayIcon.setVisible(False)
+			# win.restoreState()
+
+	def _hideToTray(self):
+		self.trayIcon.setVisible(True)
+
+if __name__ == "__main__":
+	version._loadBuildInfo(os.getcwd())
+	app: C4DVersionManagerApplication = C4DVersionManagerApplication(sys.argv)
+	sys.exit(app.exec_())
+	
+	# testApp()
 	# # https://stackoverflow.com/a/52617714
 	# w = QtWidgets.QMainWindow()
 	# w.setCentralWidget(QtWidgets.QWidget())
@@ -90,5 +105,3 @@ if __name__ == "__main__":
 	# vlay.addStretch()
 	# w.resize(640, 480)
 	# w.show()
-	
-	sys.exit(app.exec_())
