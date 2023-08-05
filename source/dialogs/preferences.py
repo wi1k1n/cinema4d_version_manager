@@ -1,8 +1,9 @@
-import os, json, typing
+import os, json
 from functools import partial
+from typing import Any
 
 from PyQt5.QtCore import (
-    QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings
+    QModelIndex, QObject, Qt, QUrl, QAbstractItemModel, QFileInfo, QSettings, pyqtSignal
 )
 from PyQt5.QtGui import (
     QFont, QDesktopServices, QIntValidator, QDragEnterEvent, QDropEvent, QKeySequence
@@ -34,6 +35,8 @@ class StorablePreference:
 
 class PreferencesWindow(QMainWindow):
 	PREFERENCES_FILENAME = 'preferences.json'
+
+	preferenceChangedSignal = pyqtSignal(str) # key of changed preference
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -105,14 +108,16 @@ class PreferencesWindow(QMainWindow):
 	def IsPreferencesLoaded(self) -> bool:
 		return hasattr(self, 'preferencesLoaded') and self.preferencesLoaded
 	
-	def _connectPreference(self, attr: str, getter, setter, default = None) -> bool:
+	def _connectPreference(self, attr: str, getter, setter, default = None, onChangeSignal: pyqtSignal | None = None) -> bool:
 		self.storablePrefs[attr] = StorablePreference(getter, setter, default)
+		if onChangeSignal:
+			onChangeSignal.connect(lambda: self.preferenceChangedSignal.emit(attr))
 		return True
 	
-	def _connectPreferenceSimple(self, attr: str, obj, default = None) -> bool:
-		if isinstance(obj, QCheckBox): return self._connectPreference(attr, obj.isChecked, obj.setChecked, default)
-		if isinstance(obj, QSlider): return self._connectPreference(attr, obj.value, obj.setValue, default)
-		if isinstance(obj, QComboBox): return self._connectPreference(attr, obj.currentText, obj.setCurrentText, default)
+	def _connectPreferenceSimple(self, attr: str, obj, default = None, onChangeSignal: pyqtSignal | None = None) -> bool:
+		if isinstance(obj, QCheckBox): return self._connectPreference(attr, obj.isChecked, obj.setChecked, default, obj.stateChanged)
+		if isinstance(obj, QSlider): return self._connectPreference(attr, obj.value, obj.setValue, default, obj.valueChanged)
+		if isinstance(obj, QComboBox): return self._connectPreference(attr, obj.currentText, obj.setCurrentText, default, obj.currentIndexChanged)
 		return False
 	
 	def _setPreference(self, attr: str, val):
@@ -239,7 +244,7 @@ class PreferencesWindow(QMainWindow):
 		groupTiles.setLayout(grpTilesLayout)
 		
 		cbC4DIconRonalds: QCheckBox = QCheckBox('Use Ronald\'s icon set')
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}gui-scale', cbC4DIconRonalds, True)
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}ronalds-icons', cbC4DIconRonalds, True)
 		cbTrimC4DVersionFromFolder: QCheckBox = QCheckBox('Trim C4D version from folder name')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-trim-c4d-version', cbTrimC4DVersionFromFolder, True)
 		cbShowTimestamp: QCheckBox = QCheckBox('Show timestamp')

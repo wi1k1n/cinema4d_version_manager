@@ -102,6 +102,7 @@ class MainWindow(QMainWindow):
 		self._createContextMenu()
 		self._createStatusBar()
 
+		self.dialogs['preferences'].preferenceChangedSignal.connect(self._onPreferenceChanged)
 		self.dialogs['tags'].tagEditedSignal.connect(lambda tag: self.c4dTabTiles._rebuildWidget())
 		self.dialogs['tags'].tagRemovedSignal.connect(lambda tag: self.c4dTabTiles._tagRemoveFromAll(tag))
 		self.dialogs['tags'].tagOrderChangedSignal.connect(lambda: self.updateTilesWidget())
@@ -321,6 +322,13 @@ class MainWindow(QMainWindow):
 		if dlg := self._getDialog('preferences'):
 			return dlg.GetPreference(prefKey)
 		return None
+	
+	def _onPreferenceChanged(self, attr: str):
+		if attr == 'appearance_ronalds-icons':
+			return self.c4dTabTiles.ReloadTilesIcons()
+		if attr == 'general_hide-on-close':
+			return
+		print('Unhandled preference change event:', attr)
 	
 	def _showActivateDialog(self, dialogKey: str) -> QWidget | None:
 		if dlg := self._getDialog(dialogKey):

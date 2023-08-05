@@ -99,7 +99,7 @@ class C4DTile(QFrame):
 
 	c4dStatusChanged = pyqtSignal(int)
 	def __init__(self, c4d: C4DInfo, parent: QWidget | None = None) -> None:
-		self.parentTilesWidget = parent
+		self.parentTilesWidget = parent # TODO: this is bad design!!
 		super().__init__(parent)
 
 		self.c4d: C4DInfo = c4d
@@ -132,15 +132,10 @@ class C4DTile(QFrame):
 		self.customContextMenuRequested.connect(self._contextMenuRequested)
 
 	def _setupUI(self):
-		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
-		c4dIconName: str = 'C4D ' + self.c4d.GetVersionMajor() + '.png'
-		c4dIconPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconName)
-		pic = QPixmap(c4dIconPath if os.path.isfile(c4dIconPath) else os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
-
 		self.picLabel: QLabel = QLabel()
-		self.picLabel.setPixmap(pic)
 		self.picLabel.setScaledContents(True)
 		self.picLabel.setCursor(QCursor(Qt.PointingHandCursor))
+		self.UpdateC4DIconImageSource()
 
 		versLabel: QLabel = QLabel(self.c4d.GetVersionString())
 		versLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 12))
@@ -168,6 +163,18 @@ class C4DTile(QFrame):
 		self.c4dProcessStatusLabel.setFixedSize(16, 16)
 		self.c4dProcessStatusLabel.setGeometry(QRect(QPoint(1, 1), self.c4dProcessStatusLabel.size()))
 		self.UpdateC4DStatusColor()
+	
+	def LoadC4DIcon(self) -> QPixmap:
+		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
+		useRondalds: bool = self.GetPreference('appearance_ronalds-icons')
+		c4dIconName: str = ('C4D ' + self.c4d.GetVersionMajor() + '.png') if useRondalds else '_C4D.png'
+		c4dIconNameFallback: str = 'C4D Color Purple.png' if useRondalds else '_C4D.png'
+		c4dIconPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconName)
+		c4dIconFallbackPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconNameFallback)
+		return QPixmap(c4dIconPath if os.path.isfile(c4dIconPath) else c4dIconFallbackPath)
+	
+	def GetPreference(self, attr: str):
+		return self.parentTilesWidget.GetPreference(attr)
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
@@ -256,6 +263,9 @@ class C4DTile(QFrame):
 		}
 		c4dPIDStatus: int = self.GetC4DProcessPIDStatus()
 		return self.c4dProcessStatusLabel.setStyleSheet(f'background-color: {statusColorMap[min(c4dPIDStatus, 1)]};')
+	
+	def UpdateC4DIconImageSource(self):
+		self.picLabel.setPixmap(self.LoadC4DIcon())
 	
 	def _activateC4D(self):
 		hwnds = WinUtils.getHWNDsForPID(self.GetC4DProcessPIDStatus())
@@ -418,7 +428,7 @@ class C4DTilesWidget(QScrollArea):
 	c4dStatusChanged = pyqtSignal(C4DInfo, int)
 
 	def __init__(self, parent: QWidget | None = None) -> None:
-		self.mainWindow = parent
+		self.mainWindow = parent # TODO: this is bad design!
 		super().__init__(parent)
 
 		self.c4dEntries: list[C4DInfo] = list() 				# 
@@ -450,6 +460,9 @@ class C4DTilesWidget(QScrollArea):
 			return dlg.GetTag(uuid)
 		return None
 	
+	def GetPreference(self, attr: str):
+		return self.mainWindow.GetPreference(attr)
+	
 	def GetCacheInfo(self, c4dDir: str) -> C4DCacheInfo | None:
 		return self.c4dCacheInfo[c4dDir] if c4dDir in self.c4dCacheInfo else None
 	
@@ -471,6 +484,23 @@ class C4DTilesWidget(QScrollArea):
 			
 			innerGroupWidget: QWidget = groupLikeWidget.layout().itemAt(0).widget()
 			C4DTilesWidget.SetWidgetVisible(innerGroupWidget, visibleStates[grp])
+	
+	def ReloadTilesIcons(self):
+		groupLikeWidget: QWidget
+		for groupLikeWidget in self.groupLikeWidgets:
+			if not groupLikeWidget.layout() or not groupLikeWidget.layout().count():
+				continue
+
+			innerGroupWidget: QWidget = groupLikeWidget.layout().itemAt(0).widget()
+			if not innerGroupWidget or not innerGroupWidget.layout():
+				continue
+
+			for idx in range(innerGroupWidget.layout().count()):
+				c4dTileWidget: C4DTile = innerGroupWidget.layout().itemAt(idx).widget()
+				if not c4dTileWidget:
+					continue
+				
+				c4dTileWidget.UpdateC4DIconImageSource()
 	
 	@staticmethod
 	def SetWidgetVisible(containerWidget: QWidget, setVisible: bool):
