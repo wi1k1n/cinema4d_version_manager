@@ -125,7 +125,6 @@ class C4DTile(QFrame):
 		self._setupUI()
 		self._addActions()
 		
-		self.setToolTip(self._createTooltipMenuString())
 		self.picLabel.mousePressEvent = self._mouseClicked
 
 		self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -136,16 +135,18 @@ class C4DTile(QFrame):
 		self.picLabel.setScaledContents(True)
 		self.picLabel.setCursor(QCursor(Qt.PointingHandCursor))
 
-		self.versLabel: QLabel = QLabel(self.c4d.GetVersionString())
-		self.versLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 12))
-		self.versLabel.setAlignment(Qt.AlignHCenter)
+		def createQLabel(fontSize: int, text: str | None = None) -> QLabel:
+			lbl: QLabel = QLabel()
+			lbl.setFont(QFont(APPLICATION_FONT_FAMILY, fontSize))
+			lbl.setAlignment(Qt.AlignHCenter)
+			if text is not None:
+				lbl.setText(text)
+			return lbl
 
-		self.folderLabel: QLabel = QLabel(self.c4d.GetNameFolderRoot()[:20])
-		self.folderLabel.setAlignment(Qt.AlignHCenter)
-		# self.folderLabel.setWordWrap(True)
-		self.folderLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
-		if self.GetPreference('appearance_c4dtile-adjust-c4d-folder-name'):
-			self.folderLabel.setText(self._getAdjustedC4DFolderName())
+		self.versLabel: QLabel = createQLabel(12)
+		self.folderLabel = createQLabel(10)
+		self.timestampLabel = createQLabel(10)
+		self.noteLabel = createQLabel(10)
 
 		self.tagsWidget: QWidget = self._createTagsSectionWidget()
 
@@ -153,7 +154,9 @@ class C4DTile(QFrame):
 		layout.addWidget(self.versLabel, alignment=Qt.AlignCenter)
 		layout.addWidget(self.picLabel, alignment=Qt.AlignCenter)
 		layout.addWidget(self.folderLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(self.timestampLabel, alignment=Qt.AlignCenter)
 		layout.addWidget(self.tagsWidget, alignment=Qt.AlignCenter)
+		layout.addWidget(self.noteLabel, alignment=Qt.AlignCenter)
 
 		self.setLayout(layout)
 
@@ -313,12 +316,30 @@ class C4DTile(QFrame):
 
 		self.versLabel.setText(self.c4d.GetVersionString())
 
+		# Adjust C4D Foldername
 		if self.GetPreference('appearance_c4dtile-adjust-c4d-folder-name'):
 			self.folderLabel.setText(self._getAdjustedC4DFolderName())
 		else:
 			self.folderLabel.setText(self.c4d.GetNameFolderRoot()[:20])
+		
+		# Timestamp
+		self.timestampLabel.setVisible(self.GetPreference('appearance_c4dtile-show-timestamp'))
+		try: # user format can be invalid or intermediately invalid
+			self.timestampLabel.setText(GetFolderTimestampCreated(self.c4d.GetPathFolderRoot()).strftime(self.GetPreference('appearance_c4dtile-timestamp-format')))
+		except:
+			pass
 
 		# TODO: tags widget isn't handled for now
+
+		# Note line
+		if ci := self.GetCacheInfo():
+			noteText: str = ci.note
+			if self.GetPreference('appearance_c4dtile-show-note-first-line') and ci.note:
+				noteText = ci.note.splitlines()[0]
+			self.noteLabel.setVisible(self.GetPreference('appearance_c4dtile-show-note') and bool(noteText))
+			self.noteLabel.setText(noteText)
+		
+		self.setToolTip(self._createTooltipMenuString())
 
 		self.UpdateC4DStatusColor()
 	
@@ -337,7 +358,7 @@ class C4DTile(QFrame):
 		ci: C4DCacheInfo = self.GetCacheInfo()
 		if ci is None: return
 		ci.note = text
-		self.setToolTip(self._createTooltipMenuString())
+		self.updateUI()
 
 	def _openNoteEditor(self):
 		ci: C4DCacheInfo = self.GetCacheInfo()

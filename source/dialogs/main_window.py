@@ -328,7 +328,10 @@ class MainWindow(QMainWindow):
 			return
 		if   attr == 'appearance_ronalds-icons' \
 		  or attr == 'appearance_c4dtile-adjust-c4d-folder-name' \
-		  or attr == 'appearance_c4dtile-show-timestamp':
+		  or attr == 'appearance_c4dtile-show-timestamp' \
+		  or attr == 'appearance_c4dtile-timestamp-format' \
+		  or attr == 'appearance_c4dtile-show-note' \
+		  or attr == 'appearance_c4dtile-show-note-first-line':
 			return self.c4dTabTiles.UpdateTilesUI()
 		print('Unhandled preference change event:', attr)
 	

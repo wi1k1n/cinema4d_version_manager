@@ -117,6 +117,7 @@ class PreferencesWindow(QMainWindow):
 		if isinstance(obj, QCheckBox): return self._connectPreference(attr, obj.isChecked, obj.setChecked, default, obj.stateChanged)
 		if isinstance(obj, QSlider): return self._connectPreference(attr, obj.value, obj.setValue, default, obj.valueChanged)
 		if isinstance(obj, QComboBox): return self._connectPreference(attr, obj.currentText, obj.setCurrentText, default, obj.currentIndexChanged)
+		if isinstance(obj, QLineEdit): return self._connectPreference(attr, obj.text, obj.setText, default, obj.textChanged)
 		return False
 	
 	def _setPreference(self, attr: str, val):
@@ -250,13 +251,22 @@ class PreferencesWindow(QMainWindow):
 
 		cbShowTimestamp: QCheckBox = QCheckBox('Show timestamp')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-timestamp', cbShowTimestamp, True)
-		cbTimestampFormat: QCheckBox = QCheckBox('Timestamp format')
+		cbTimestampFormat: QLineEdit = QLineEdit('%d-%b-%Y %H:%M')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-timestamp-format', cbTimestampFormat)
+		PreferencesWindow._connectWidgetsIsEnabledToCheckbox(cbShowTimestamp, [cbTimestampFormat])
+		def showInvalidTimeFormat(le: QLineEdit):
+			clr: str = '#ffffff'
+			try:
+				dt.datetime.now().strftime(le.text())
+			except:
+				clr = '#ffa7a7'
+			le.setStyleSheet(f'background-color: {clr}')
+		cbTimestampFormat.textChanged.connect(partial(showInvalidTimeFormat, cbTimestampFormat))
 
 		cbShoNoteOnTile: QCheckBox = QCheckBox('Show note on tile')
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note', cbShoNoteOnTile, False)
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note', cbShoNoteOnTile, True)
 		cbShowNoteOnTileFirstLineOnly: QCheckBox = QCheckBox('Show note: only show first line')
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note-first-line', cbShowNoteOnTileFirstLineOnly, False)
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note-first-line', cbShowNoteOnTileFirstLineOnly, True)
 		PreferencesWindow._connectWidgetsIsEnabledToCheckbox(cbShoNoteOnTile, [cbShowNoteOnTileFirstLineOnly])
 		
 		cbUnusedFolderGroup: QCheckBox = QCheckBox('Unused folded group')
@@ -265,7 +275,7 @@ class PreferencesWindow(QMainWindow):
 		grpTilesLayout.addRow(cbC4DIconRonalds)
 		grpTilesLayout.addRow(cbAdjustC4DFolderName)
 		grpTilesLayout.addRow(cbShowTimestamp)
-		grpTilesLayout.addRow(cbTimestampFormat)
+		grpTilesLayout.addRow('Timestamp format', cbTimestampFormat)
 		grpTilesLayout.addRow(cbUnusedFolderGroup)
 		grpTilesLayout.addRow(cbShoNoteOnTile)
 		grpTilesLayout.addRow(cbShowNoteOnTileFirstLineOnly)
