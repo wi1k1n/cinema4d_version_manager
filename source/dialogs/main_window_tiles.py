@@ -135,23 +135,24 @@ class C4DTile(QFrame):
 		self.picLabel: QLabel = QLabel()
 		self.picLabel.setScaledContents(True)
 		self.picLabel.setCursor(QCursor(Qt.PointingHandCursor))
-		self.UpdateC4DIconImageSource()
 
-		versLabel: QLabel = QLabel(self.c4d.GetVersionString())
-		versLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 12))
-		versLabel.setAlignment(Qt.AlignHCenter)
+		self.versLabel: QLabel = QLabel(self.c4d.GetVersionString())
+		self.versLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 12))
+		self.versLabel.setAlignment(Qt.AlignHCenter)
 
-		folderLabel: QLabel = QLabel(self.c4d.GetNameFolderRoot()[:20])
-		folderLabel.setAlignment(Qt.AlignHCenter)
-		# folderLabel.setWordWrap(True)
-		folderLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
+		self.folderLabel: QLabel = QLabel(self.c4d.GetNameFolderRoot()[:20])
+		self.folderLabel.setAlignment(Qt.AlignHCenter)
+		# self.folderLabel.setWordWrap(True)
+		self.folderLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
+		if self.GetPreference('appearance_c4dtile-adjust-c4d-folder-name'):
+			self.folderLabel.setText(self._getAdjustedC4DFolderName())
 
 		self.tagsWidget: QWidget = self._createTagsSectionWidget()
 
 		layout: QVBoxLayout = QVBoxLayout()
-		layout.addWidget(versLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(self.versLabel, alignment=Qt.AlignCenter)
 		layout.addWidget(self.picLabel, alignment=Qt.AlignCenter)
-		layout.addWidget(folderLabel, alignment=Qt.AlignCenter)
+		layout.addWidget(self.folderLabel, alignment=Qt.AlignCenter)
 		layout.addWidget(self.tagsWidget, alignment=Qt.AlignCenter)
 
 		self.setLayout(layout)
@@ -162,7 +163,8 @@ class C4DTile(QFrame):
 		self.c4dProcessStatusLabel: QLabel = QLabel(self)
 		self.c4dProcessStatusLabel.setFixedSize(16, 16)
 		self.c4dProcessStatusLabel.setGeometry(QRect(QPoint(1, 1), self.c4dProcessStatusLabel.size()))
-		self.UpdateC4DStatusColor()
+		
+		self.updateUI()
 	
 	def LoadC4DIcon(self) -> QPixmap:
 		# Many thanks to Ronald for the icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
@@ -175,6 +177,45 @@ class C4DTile(QFrame):
 	
 	def GetPreference(self, attr: str):
 		return self.parentTilesWidget.GetPreference(attr)
+	
+	def _getAdjustedC4DFolderName(self):
+		folderName: str = self.c4d.GetNameFolderRoot()
+		
+		if folderName.lower().startswith('maxon'): # customer installation
+			return folderName
+		
+		commitHashPattern = re.compile('#[a-zA-Z0-9]{12}')
+		if match := commitHashPattern.search(folderName): # it's a new notation with 12 symbol commit hash
+			if folderName.startswith('C4D'): # it's installation
+				tokens: list[str] = folderName.split(' ')
+				if len(tokens) < 5: return folderName[:20]
+				return f'{tokens[1]} {tokens[4]}' # branch + commit hash
+			# it's a package
+			tokens: list[str] = folderName.split('_')
+			if len(tokens) < 2: return folderName[:20]
+			return f'{tokens[0]} {match.group()}'
+		
+		# it's an old notation with CL
+		if folderName.startswith('C4D'): # it's installation
+			tokens: list[str] = folderName.split(' ')
+			if len(tokens) < 4: return folderName[:20]
+			return f'{tokens[1]} CL{tokens[-1]}'
+		
+		# it's a package
+		changeListPattern = re.compile('CL\d{6}')
+		if match := changeListPattern.search(folderName): # found CL###### token
+			pos, _ = match.span()
+			tokens: list[str] = [x for x in folderName[:pos].split('.') if x]
+			if len(tokens) < 3: return folderName[:20]
+			versionTokensNum = 2 # old R notation, e.g. 26.001
+			if len(tokens[0]) == 4: # it's 202X notation
+				if len(tokens) == 3: # it's 2023.000.branch naming scheme
+					versionTokensNum = 2
+				else: # it's 2023.0.0.branch naming scheme
+					versionTokensNum = 3
+			tokens = [''.join(tokens[:versionTokensNum]), '.'.join(tokens[versionTokensNum:])]
+			return f'{tokens[1]} {match.group()}'
+		return folderName[:20]
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
@@ -266,6 +307,20 @@ class C4DTile(QFrame):
 	
 	def UpdateC4DIconImageSource(self):
 		self.picLabel.setPixmap(self.LoadC4DIcon())
+
+	def updateUI(self):
+		self.UpdateC4DIconImageSource()
+
+		self.versLabel.setText(self.c4d.GetVersionString())
+
+		if self.GetPreference('appearance_c4dtile-adjust-c4d-folder-name'):
+			self.folderLabel.setText(self._getAdjustedC4DFolderName())
+		else:
+			self.folderLabel.setText(self.c4d.GetNameFolderRoot()[:20])
+
+		# TODO: tags widget isn't handled for now
+
+		self.UpdateC4DStatusColor()
 	
 	def _activateC4D(self):
 		hwnds = WinUtils.getHWNDsForPID(self.GetC4DProcessPIDStatus())
@@ -484,8 +539,8 @@ class C4DTilesWidget(QScrollArea):
 			
 			innerGroupWidget: QWidget = groupLikeWidget.layout().itemAt(0).widget()
 			C4DTilesWidget.SetWidgetVisible(innerGroupWidget, visibleStates[grp])
-	
-	def ReloadTilesIcons(self):
+				
+	def UpdateTilesUI(self):
 		groupLikeWidget: QWidget
 		for groupLikeWidget in self.groupLikeWidgets:
 			if not groupLikeWidget.layout() or not groupLikeWidget.layout().count():
@@ -500,7 +555,7 @@ class C4DTilesWidget(QScrollArea):
 				if not c4dTileWidget:
 					continue
 				
-				c4dTileWidget.UpdateC4DIconImageSource()
+				c4dTileWidget.updateUI()
 	
 	@staticmethod
 	def SetWidgetVisible(containerWidget: QWidget, setVisible: bool):

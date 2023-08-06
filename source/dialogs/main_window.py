@@ -324,10 +324,12 @@ class MainWindow(QMainWindow):
 		return None
 	
 	def _onPreferenceChanged(self, attr: str):
-		if attr == 'appearance_ronalds-icons':
-			return self.c4dTabTiles.ReloadTilesIcons()
 		if attr == 'general_hide-on-close':
 			return
+		if   attr == 'appearance_ronalds-icons' \
+		  or attr == 'appearance_c4dtile-adjust-c4d-folder-name' \
+		  or attr == 'appearance_c4dtile-show-timestamp':
+			return self.c4dTabTiles.UpdateTilesUI()
 		print('Unhandled preference change event:', attr)
 	
 	def _showActivateDialog(self, dialogKey: str) -> QWidget | None:

@@ -15,8 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 from version import *
-import utils
-from utils import OpenFolderInDefaultExplorer
+from utils import *
 
 class StorablePreference:
 	def __init__(self, getter, setter, default = None) -> None:
@@ -77,7 +76,7 @@ class PreferencesWindow(QMainWindow):
 
 		# Preferences buttons
 		self.openPreferencesFolderButton: QPushButton = QPushButton('Open prefs folder')
-		self.openPreferencesFolderButton.clicked.connect(lambda: OpenFolderInDefaultExplorer(utils.GetPrefsFolderPath()))
+		self.openPreferencesFolderButton.clicked.connect(lambda: OpenFolderInDefaultExplorer(GetPrefsFolderPath()))
 		self.savePreferencesButton: QPushButton = QPushButton('Save preferences')
 		self.savePreferencesButton.clicked.connect(self.SavePreferences)
 
@@ -198,14 +197,14 @@ class PreferencesWindow(QMainWindow):
 		grpbSystem: QGroupBox = QGroupBox('System', self)
 		grpbSystem.setLayout(systemLayout)
 
-		# Keyboard
-		keyboardLayout: QFormLayout = QFormLayout()
-		leGlobalShortcut: QLineEdit = QLineEdit()
-		leGlobalShortcut.setReadOnly(True)
+		# # Keyboard
+		# keyboardLayout: QFormLayout = QFormLayout()
+		# leGlobalShortcut: QLineEdit = QLineEdit()
+		# leGlobalShortcut.setReadOnly(True)
 		
-		systemLayout: QFormLayout = QFormLayout()
-		grpbKeyboard: QGroupBox = QGroupBox('Keyboard', self)
-		grpbKeyboard.setLayout(systemLayout)
+		# systemLayout: QFormLayout = QFormLayout()
+		# grpbKeyboard: QGroupBox = QGroupBox('Keyboard', self)
+		# grpbKeyboard.setLayout(systemLayout)
 
 		# Main General preferences
 		prefEntriesLayout: QVBoxLayout = QVBoxLayout()
@@ -218,48 +217,53 @@ class PreferencesWindow(QMainWindow):
 
 	def _createPrefAppearance(self):
 		SECTION_PREFIX = 'appearance_'
-		### Group 'Application'
-		groupApplication: QGroupBox = QGroupBox('Application')
+		# ### Group 'Application'
+		# groupApplication: QGroupBox = QGroupBox('Application')
 
-		grpApplicationLayout: QFormLayout = QFormLayout()
-		groupApplication.setLayout(grpApplicationLayout)
+		# grpApplicationLayout: QFormLayout = QFormLayout()
+		# groupApplication.setLayout(grpApplicationLayout)
 
-		# GUI size slider
-		guiSizeSLider: QSlider = QSlider(Qt.Horizontal)
-		guiSizeSLider.setMinimum(1)
-		guiSizeSLider.setMaximum(3)
-		guiSizeSLider.setSingleStep(1)
-		# guiSizeSLider.setValue(2)
-		guiSizeSLider.setTickPosition(QSlider.TicksBelow)
-		guiSizeSLider.setTickInterval(1)
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}gui-scale', guiSizeSLider, 2)
-		# guiSizeSLider.setMaximumWidth(128)
-		guiSizeSLider.setDisabled(True)
-		grpApplicationLayout.addRow(QLabel('GUI size'), guiSizeSLider)
+		# # GUI size slider
+		# guiSizeSLider: QSlider = QSlider(Qt.Horizontal)
+		# guiSizeSLider.setMinimum(1)
+		# guiSizeSLider.setMaximum(3)
+		# guiSizeSLider.setSingleStep(1)
+		# # guiSizeSLider.setValue(2)
+		# guiSizeSLider.setTickPosition(QSlider.TicksBelow)
+		# guiSizeSLider.setTickInterval(1)
+		# self._connectPreferenceSimple(f'{SECTION_PREFIX}gui-scale', guiSizeSLider, 2)
+		# # guiSizeSLider.setMaximumWidth(128)
+		# guiSizeSLider.setDisabled(True)
+		# grpApplicationLayout.addRow(QLabel('GUI size'), guiSizeSLider)
 
 		### Group 'Cinema 4D Tiles'
-		groupTiles: QGroupBox = QGroupBox('Cinema 4D')
+		groupTiles: QGroupBox = QGroupBox('Cinema 4D Tiles')
 
 		grpTilesLayout: QFormLayout = QFormLayout()
 		groupTiles.setLayout(grpTilesLayout)
 		
 		cbC4DIconRonalds: QCheckBox = QCheckBox('Use Ronald\'s icon set')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}ronalds-icons', cbC4DIconRonalds, True)
-		cbTrimC4DVersionFromFolder: QCheckBox = QCheckBox('Trim C4D version from folder name')
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-trim-c4d-version', cbTrimC4DVersionFromFolder, True)
+
+		cbAdjustC4DFolderName: QCheckBox = QCheckBox('Adjust C4D folder name')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-adjust-c4d-folder-name', cbAdjustC4DFolderName, True)
+
 		cbShowTimestamp: QCheckBox = QCheckBox('Show timestamp')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-timestamp', cbShowTimestamp, True)
 		cbTimestampFormat: QCheckBox = QCheckBox('Timestamp format')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-timestamp-format', cbTimestampFormat)
-		cbUnusedFolderGroup: QCheckBox = QCheckBox('Unused folded group')
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}unused-folded-group', cbUnusedFolderGroup)
+
 		cbShoNoteOnTile: QCheckBox = QCheckBox('Show note on tile')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note', cbShoNoteOnTile, False)
 		cbShowNoteOnTileFirstLineOnly: QCheckBox = QCheckBox('Show note: only show first line')
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note-first-line', cbShowNoteOnTileFirstLineOnly, False)
+		PreferencesWindow._connectWidgetsIsEnabledToCheckbox(cbShoNoteOnTile, [cbShowNoteOnTileFirstLineOnly])
+		
+		cbUnusedFolderGroup: QCheckBox = QCheckBox('Unused folded group')
+		self._connectPreferenceSimple(f'{SECTION_PREFIX}unused-folded-group', cbUnusedFolderGroup)
 
 		grpTilesLayout.addRow(cbC4DIconRonalds)
-		grpTilesLayout.addRow(cbTrimC4DVersionFromFolder)
+		grpTilesLayout.addRow(cbAdjustC4DFolderName)
 		grpTilesLayout.addRow(cbShowTimestamp)
 		grpTilesLayout.addRow(cbTimestampFormat)
 		grpTilesLayout.addRow(cbUnusedFolderGroup)
@@ -274,7 +278,6 @@ class PreferencesWindow(QMainWindow):
 
 		##### Main layout
 		mainLayout: QVBoxLayout = QVBoxLayout()
-		mainLayout.addWidget(groupApplication)
 		mainLayout.addWidget(groupTiles)
 		mainLayout.addStretch()
 
@@ -377,16 +380,23 @@ class PreferencesWindow(QMainWindow):
 		return prefEntriesWidget
 	
 	def _setRunOnStartup(self, val: int):
-		if startupPath := utils.GetStartupPath():
+		if startupPath := GetStartupPath():
 			if QMessageBox.information(self, 'Instructions', 'Two folders will be opened for you.'\
 				'\nCopy executable file (Ctrl+C) from the first one, and paste a shortcut'\
 				' (Right Mouse Button -> Paste shortcut) in the second on. Do you want to continue?',
 				QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-				utils.ShowFileInDefaultExplorer(utils.GetCurrentExecutablePath())
-				utils.OpenFolderInDefaultExplorer(startupPath)
-			# utils.CreateSymlink(executablePath, os.path.join(startupPath, os.path.split(executablePath)[1])) # not enough access rights!
+				ShowFileInDefaultExplorer(GetCurrentExecutablePath())
+				OpenFolderInDefaultExplorer(startupPath)
+			# CreateSymlink(executablePath, os.path.join(startupPath, os.path.split(executablePath)[1])) # not enough access rights!
+	
+	@staticmethod
+	def _connectWidgetsIsEnabledToCheckbox(cb: QCheckBox, widgets: list[QWidget]):
+		def SetEnabled(wList: list[QWidget], val: bool):
+			for w in wList:
+				w.setEnabled(val)
+		cb.stateChanged.connect(partial(SetEnabled, widgets))
 
 	@staticmethod
 	def GetPreferencesSavePath():
-		prefsFolderPath: str = utils.GetPrefsFolderPath()
+		prefsFolderPath: str = GetPrefsFolderPath()
 		return os.path.join(prefsFolderPath, PreferencesWindow.PREFERENCES_FILENAME)
