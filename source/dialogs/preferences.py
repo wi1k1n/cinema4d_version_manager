@@ -116,7 +116,7 @@ class PreferencesWindow(QMainWindow):
 	def _connectPreferenceSimple(self, attr: str, obj, default = None, onChangeSignal: pyqtSignal | None = None) -> bool:
 		if isinstance(obj, QCheckBox): return self._connectPreference(attr, obj.isChecked, obj.setChecked, default, obj.stateChanged)
 		if isinstance(obj, QSlider): return self._connectPreference(attr, obj.value, obj.setValue, default, obj.valueChanged)
-		if isinstance(obj, QComboBox): return self._connectPreference(attr, obj.currentText, obj.setCurrentText, default, obj.currentIndexChanged)
+		if isinstance(obj, QComboBox): return self._connectPreference(attr, obj.currentIndex, obj.setCurrentIndex, default, obj.currentIndexChanged)
 		if isinstance(obj, QLineEdit): return self._connectPreference(attr, obj.text, obj.setText, default, obj.textChanged)
 		return False
 	
@@ -282,7 +282,14 @@ class PreferencesWindow(QMainWindow):
 		
 		comboC4DStatusGrouping: QComboBox = QComboBox(self)
 		comboC4DStatusGrouping.addItems(['Touched / Untouched', 'Separate statuses'])
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}grouping-status-separately', comboC4DStatusGrouping)
+		def comboC4DStatusGroupingGetter(cb: QComboBox):
+			return cb.currentIndex()
+		def comboC4DStatusGroupingSetter(cb: QComboBox, val: int):
+			cb.setCurrentIndex(val)
+		self._connectPreference(f'{SECTION_PREFIX}grouping-status-separately',
+			  partial(comboC4DStatusGroupingGetter, comboC4DStatusGrouping),
+			  partial(comboC4DStatusGroupingSetter, comboC4DStatusGrouping), 0,
+			  comboC4DStatusGrouping.currentIndexChanged)
 
 		grpTilesLayout.addRow(QLabel('C4D "Grouping by status" mode:'), comboC4DStatusGrouping)
 

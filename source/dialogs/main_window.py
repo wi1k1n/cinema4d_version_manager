@@ -334,6 +334,8 @@ class MainWindow(QMainWindow):
 		  or attr == 'appearance_c4dtile-show-note' \
 		  or attr == 'appearance_c4dtile-show-note-first-line':
 			return self.c4dTabTiles.UpdateTilesUI()
+		if attr == 'appearance_grouping-status-separately':
+			return self.updateTilesWidget()
 		print('Unhandled preference change event:', attr)
 	
 	def _showActivateDialog(self, dialogKey: str) -> QWidget | None:
@@ -427,7 +429,6 @@ class MainWindow(QMainWindow):
 			# c4dGroups = [C4DTileGroup(indices, self.GetTag(tagUuid).name if tagUuid else 'None') for tagUuid, indices in idxMap.items() if self.GetTag(tagUuid) or tagUuid == '']
 			
 		elif groupingKey == 'status':
-			USE_TOUCHED_UNTOUCHED_GROUP_SPLIT = True
 			keyMapNames: dict[int, str] = {
 				0: 'Not started yet',
 				-2: 'Killed',
@@ -448,7 +449,7 @@ class MainWindow(QMainWindow):
 				if statusKey not in idxMap: idxMap[statusKey] = list()
 				idxMap[statusKey].append(c4dIdx)
 
-			if USE_TOUCHED_UNTOUCHED_GROUP_SPLIT:
+			if self.GetPreference('appearance_grouping-status-separately') == 0: # group touched
 				mergedIdxMap: dict[int, list[int]] = dict()
 				for newKey, mergingGroup in mergingGroups.items():
 					mergingIndices: list[int] = list()
