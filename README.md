@@ -34,6 +34,7 @@
 	* [ ] Register global shortcut to open window from background
 		* [ ] Hide on lost focus checkbox in preferences (have doubts it'd be convenient, may be worth testing)
 	* [ ] custom regex instead of "trim c4d version"
+	* [ ] Add "Nothing found, change search paths and Rescan (Ctrl + F5)" label if no cinema was found
 * [ ] Regular Tiles view
 	* [ ] double click on empty space -> default grouping (set default in preferences)
 	* [ ] try saving scrollbar position, such that after updatetiles it stays where it was
@@ -41,10 +42,11 @@
 * [ ] Tiles desktop view
 	* [ ] A separate tab with draggable c4d tiles that work with search, but doesn't have any grouping options
 * [ ] Shortcuts window in 'Help' section
+* [ ] Change gitlab to github logo, + private -> public access
 * [ ] Ctrl+Shift+B -> BugsLife -> Open issues on github/gitlab
 
 ### Bugs:
-
+* Inconsistent disabling entries in preferences on load
 * Normalize slashes in paths
 
 ### Group/Filter/Sort research
