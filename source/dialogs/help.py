@@ -4,7 +4,7 @@ from functools import partial
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import (
-    QObject, Qt, QEvent, pyqtSignal, QProcess, QRect, QPoint, QPropertyAnimation
+    QObject, Qt, QEvent, pyqtSignal, QProcess, QRect, QPoint, QPropertyAnimation, QMargins
 )
 from PyQt5.QtGui import (
     QIcon, QKeySequence, QPixmap, QFont, QCursor, QMouseEvent, QDropEvent, QDragEnterEvent,
@@ -29,11 +29,6 @@ from gui_utils import *
 class ShortcutsWindow(QWidget):
 	def __init__(self, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
-		
-		self.setWindowTitle('Shortcuts Cheatsheet')
-
-		grid: QGridLayout = QGridLayout()
-		self.setLayout(grid)
 		
 		shortcuts: dict[str, dict[str, str]] = {
 			'General': {
@@ -82,6 +77,12 @@ class ShortcutsWindow(QWidget):
 				}
 			},
 		}
+
+		self.setWindowTitle('Shortcuts Cheatsheet')
+
+		grid: QGridLayout = QGridLayout()
+		grid.setHorizontalSpacing(20)
+		self.setLayout(grid)
 		
 		# First pre-calculate actual grid positions
 		posToCatMap: dict[tuple[int, int], str] = {o['position']: k for k, o in shortcuts.items()}
@@ -98,11 +99,22 @@ class ShortcutsWindow(QWidget):
 
 		# Create corresponding widgets
 		def createCaptionLabel(txt: str) -> QLabel:
-			return QLabel(txt)
+			lbl: QLabel = QLabel(txt)
+			font: QFont = QFont(APPLICATION_FONT_FAMILY, 11)
+			font.setBold(True)
+			lbl.setFont(font)
+			lbl.setContentsMargins(QMargins(10, 10, 0, 0))
+			return lbl
 		def createShortcutLabel(txt: str) -> QLabel:
-			return QLabel(txt)
+			lbl: QLabel = QLabel(txt)
+			lbl.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
+			lbl.setMaximumWidth(128)
+			return lbl
 		def createDescriptionLabel(txt: str) -> QLabel:
-			return QLabel(txt)
+			lbl: QLabel = QLabel(txt)
+			lbl.setFont(QFont(APPLICATION_FONT_FAMILY, 9))
+			lbl.setWordWrap(True)
+			return lbl
 		
 		for sectionName, obj in shortcuts.items():
 			pr = obj['_gridRowOffset']
@@ -112,3 +124,6 @@ class ShortcutsWindow(QWidget):
 				cr, cc = pr + idx + 1, pc
 				grid.addWidget(createShortcutLabel(shortcut), cr, cc, 1, 1)
 				grid.addWidget(createDescriptionLabel(description), cr, cc + 1, 1, 1)
+		
+		# self.setFixedSize(self.size())
+		self.setFixedWidth(800)
