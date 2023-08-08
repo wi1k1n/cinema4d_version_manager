@@ -77,7 +77,9 @@ def OpenURL(url: str) -> None:
 	QDesktopServices.openUrl(QUrl(url))
 
 def GetFolderTimestampCreated(path: str) -> dt.datetime:
-	return dt.datetime.fromtimestamp(os.stat(path).st_ctime)
+	if os.path.exists(path):
+		return dt.datetime.fromtimestamp(os.stat(path).st_ctime)
+	return dt.datetime.now()
 
 class WinUtils:
 	EnumWindows = ctypes.windll.user32.EnumWindows

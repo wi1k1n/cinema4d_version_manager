@@ -135,17 +135,21 @@ class PreferencesWindow(QMainWindow):
 				pref.Reset()
 			return False
 
-		with open(prefsFilePath, 'r') as fp:
-			data: dict = json.load(fp)
-			if 'version' in data:
-				print(f"Loading preferences: file version {data['version']}")
-			if 'preferences' in data:
-				prefs: dict = data['preferences']
-				for attr, pref in self.storablePrefs.items():
-					if attr in prefs:
-						pref.Set(prefs[attr])
 		self.preferencesLoaded = True
-		return True
+		try:
+			with open(prefsFilePath, 'r') as fp:
+				data: dict = json.load(fp)
+				if 'version' in data:
+					print(f"Loading preferences: file version {data['version']}")
+				if 'preferences' in data:
+					prefs: dict = data['preferences']
+					for attr, pref in self.storablePrefs.items():
+						if attr in prefs:
+							pref.Set(prefs[attr])
+			return True
+		except:
+			print(f'Failed to load preferences from {prefsFilePath}')
+			return False
 
 	def SavePreferences(self):
 		storeDict: dict = dict()
@@ -269,14 +273,14 @@ class PreferencesWindow(QMainWindow):
 		self._connectPreferenceSimple(f'{SECTION_PREFIX}c4dtile-show-note-first-line', cbShowNoteOnTileFirstLineOnly, True)
 		PreferencesWindow._connectWidgetsIsEnabledToCheckbox(cbShoNoteOnTile, [cbShowNoteOnTileFirstLineOnly])
 		
-		cbUnusedFolderGroup: QCheckBox = QCheckBox('Unused folded group')
-		self._connectPreferenceSimple(f'{SECTION_PREFIX}unused-folded-group', cbUnusedFolderGroup)
+		# cbUnusedFolderGroup: QCheckBox = QCheckBox('Unused folded group')
+		# self._connectPreferenceSimple(f'{SECTION_PREFIX}unused-folded-group', cbUnusedFolderGroup)
 
 		grpTilesLayout.addRow(cbC4DIconRonalds)
 		grpTilesLayout.addRow(cbAdjustC4DFolderName)
 		grpTilesLayout.addRow(cbShowTimestamp)
 		grpTilesLayout.addRow('Timestamp format', cbTimestampFormat)
-		grpTilesLayout.addRow(cbUnusedFolderGroup)
+		# grpTilesLayout.addRow(cbUnusedFolderGroup)
 		grpTilesLayout.addRow(cbShoNoteOnTile)
 		grpTilesLayout.addRow(cbShowNoteOnTileFirstLineOnly)
 		

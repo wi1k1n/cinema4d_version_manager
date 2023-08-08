@@ -654,6 +654,10 @@ class C4DTilesWidget(QScrollArea):
 			if tag.uuid in c4dCacheInfo.tagUuids:
 				c4dCacheInfo.tagUuids.remove(tag.uuid)
 		self._rebuildWidget()
+
+	def mouseDoubleClickEvent(self, evt: QMouseEvent):
+		print(evt)
+		super().mouseDoubleClickEvent(evt)
 	
 	def SaveCache(self):
 		saveFilePath: str = self.GetCacheSavePath()

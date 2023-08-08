@@ -34,9 +34,11 @@ class ShortcutsWindow(QWidget):
 			'General': {
 				'position': (0, 0),
 				'content': {
+					'Ctrl + O': 			'Add search folder',
 					'Ctrl + S': 			'Save c4d cache and tags info',
 					'Ctrl + E': 			'Preference',
 					'F1': 					'Show this cheatsheet',
+					'F5': 					'Update tiles view',
 					'Ctrl + F5': 			'Rescan',
 					'Ctrl + T': 			'Open Tags window',
 					'Ctrl + F': 			'Open Search/Filter/Sort window',
@@ -45,24 +47,26 @@ class ShortcutsWindow(QWidget):
 			'Grouping': {
 				'position': (1, 0),
 				'content': {
-					'Ctrl + G, Ctrl + G': 	'Toggle fold all',
-					'Ctrl + G, Ctrl + N': 	'No grouping',
-					'Ctrl + G, Ctrl + F': 	'Group by search paths',
-					'Ctrl + G, Ctrl + V': 	'Group by c4d version',
-					'Ctrl + G, Ctrl + T': 	'Group by tags',
-					'Ctrl + G, Ctrl + S': 	'Group by c4d status',
+					'Ctrl + G': 			'Toggle fold all',
+					'Ctrl + 1': 			'No grouping',
+					'Ctrl + 2': 			'Group by search paths',
+					'Ctrl + 3': 			'Group by c4d version',
+					'Ctrl + 4': 			'Group by tags',
+					'Ctrl + 5': 			'Group by c4d status',
+					'Alt + N': 				'Apply N-th custom grouping view',
+					'Empty Double LMB': 	'Apply default grouping view',
 				}
 			},
-			'C4D Tile Mouse': {
+			'C4D Tile Widget': {
 				'position': (0, 1),
 				'content': {
 					'LMB': 					'Run C4D',
 					'Ctrl + LMB': 			'Run C4D with console',
-					'Shift + LMB': 			'Open C4D folder',
-					'Ctrl + Shift + LMB': 	'Rescan',
+					'Shift + LMB': 			'Kill C4D process',
+					'Ctrl + Shift + LMB': 	'Restart C4D',
 					'MMB':		 			'Activate C4D if it\'s running',
-					'Shift + MMB': 			'Kill C4D process',
-					'Ctrl + Shift + MMB': 	'Restart C4D',
+					'Ctrl + MMB': 			'Open C4D folder',
+					'Shift + MMB': 			'Open C4D preferences folder',
 				}
 			},
 			'Tag management': {
@@ -76,6 +80,12 @@ class ShortcutsWindow(QWidget):
 					'Empty Double LMB': 	'Create new tag',
 				}
 			},
+		}
+		abbrDecodings: dict[str, str] = {
+			'LMB': 'Left Mouse Buttom',
+			'MMB': 'Middle Mouse Buttom',
+			'RMB': 'Right Mouse Buttom',
+			'D&D': 'Drag-n-Drop',
 		}
 
 		self.setWindowTitle('Shortcuts Cheatsheet')
@@ -97,6 +107,13 @@ class ShortcutsWindow(QWidget):
 				shortcuts[k]['_gridRowOffset'] = rowCursor
 				rowCursor += len(shortcuts[k]['content']) + 1
 
+		def addExtendedAbbreviationTooltip(lbl: QLabel):
+			ret = lbl.text()
+			for abbr, val in abbrDecodings.items():
+				if abbr not in ret: continue
+				ret = ret.replace(abbr, val)
+			lbl.setToolTip(ret)
+		
 		# Create corresponding widgets
 		def createCaptionLabel(txt: str) -> QLabel:
 			lbl: QLabel = QLabel(txt)
@@ -109,6 +126,7 @@ class ShortcutsWindow(QWidget):
 			lbl: QLabel = QLabel(txt)
 			lbl.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
 			lbl.setMaximumWidth(128)
+			addExtendedAbbreviationTooltip(lbl)
 			return lbl
 		def createDescriptionLabel(txt: str) -> QLabel:
 			lbl: QLabel = QLabel(txt)
@@ -126,4 +144,4 @@ class ShortcutsWindow(QWidget):
 				grid.addWidget(createDescriptionLabel(description), cr, cc + 1, 1, 1)
 		
 		# self.setFixedSize(self.size())
-		self.setFixedWidth(800)
+		self.setFixedSize(800, 500)

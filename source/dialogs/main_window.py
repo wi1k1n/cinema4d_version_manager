@@ -72,10 +72,10 @@ class MainWindow(QMainWindow):
 		self.setMinimumSize(350, 250)
 
 		self.dialogs = {
-			'preferences': PreferencesWindow(),
+			'preferences': PreferencesWindow(self),
 			'tags': TagsWindow(),
 			'filtersort': FilterSortWindow(),
-			'about': AboutWindow(),
+			'about': AboutWindow(self),
 			'help': ShortcutsWindow(),
 		}
 
