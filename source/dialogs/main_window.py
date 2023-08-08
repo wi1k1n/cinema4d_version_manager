@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
 
 		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget(self)
 		self.c4dTabTiles.c4dStatusChanged.connect(self._onC4DStatusChanged)
+		self.c4dTabTiles.mouseDoubleClickedSignal.connect(self._onC4DTabTilesMouseDoubleClick)
 
 		# self.c4dTabTableWidget: QTreeWidget = QTreeWidget(self)
 		# self.c4dTabTableWidget.setColumnCount(4)
@@ -187,7 +188,7 @@ class MainWindow(QMainWindow):
 			txt, color, shortcut = actionsGroupingDict[key]
 			action: QAction = QAction(txt)
 			action.setShortcut(shortcut)
-			action.triggered.connect(partial(self._changeGrouping, key))
+			action.triggered.connect(partial(self._changeGrouping, key, True))
 			# if color:
 			# 	pixmap: QPixmap = QPixmap(20, 20)
 			# 	pixmap.fill(color) # TODO: add border
@@ -199,7 +200,7 @@ class MainWindow(QMainWindow):
 			self.actionsGrouping[key] = createCheckableAction(key)
 		
 		# default
-		self._changeGrouping('paths')
+		self._changeGrouping('paths', False)
 		# self._changeGrouping('none')
 		
 	def _createMenuBar(self):
@@ -236,13 +237,17 @@ class MainWindow(QMainWindow):
 			if action.text().startswith(prefix):
 				return prefix
 		return ''
-	def _changeGrouping(self, groupingKey: str):
+	
+	def _changeGrouping(self, groupingKey: str, toggleSort: bool):
 		newPrefix: str = MainWindow.GROUPING_MARK_ASC_PREFIX
 		# Figure out new prefix and unselect all actions to 
 		for k, action in self.actionsGrouping.items():
 			if curPrefix := MainWindow._isActionAlreadySelected(action):
 				action.setText(action.text()[len(curPrefix):])
 				if k == groupingKey:
+					if not toggleSort:
+						newPrefix = curPrefix
+						break
 					if curPrefix == MainWindow.GROUPING_MARK_ASC_PREFIX:
 						newPrefix = MainWindow.GROUPING_MARK_DESC_PREFIX
 				break
@@ -348,12 +353,16 @@ class MainWindow(QMainWindow):
 	def _onC4DStatusChanged(self, info, status):
 		self.updateTilesWidget() # update tiles if c4d status was changed
 	
+	def _onC4DTabTilesMouseDoubleClick(self, evt: QMouseEvent):
+		self._changeGrouping('paths', False)
+		self._setFoldAllC4DGroups(False)
+	
 	def _groupByTagRequested(self, tag: C4DTag):
 		if tag is None:
 			return
 		groupingKey, _ = self._getGrouping()
 		if groupingKey != 'tag':
-			self._changeGrouping('tag')
+			self._changeGrouping('tag', False)
 		visibilities: dict[C4DTileGroup, bool] = self.c4dTabTiles.GetGroupsVisibility()
 		if visibleGroups := [grp for grp in visibilities.keys() if grp.key == tag]:
 			grp: C4DTileGroup = visibleGroups[0]
@@ -362,6 +371,10 @@ class MainWindow(QMainWindow):
 	def _toggleFoldAllC4DGroups(self):
 		visibilities: dict[C4DTileGroup, bool] = self.c4dTabTiles.GetGroupsVisibility()
 		val: bool = all(visibilities.values())
+		return self.c4dTabTiles.SetGroupsVisibility({grp: not val for grp in visibilities.keys()})
+	
+	def _setFoldAllC4DGroups(self, val: bool):
+		visibilities: dict[C4DTileGroup, bool] = self.c4dTabTiles.GetGroupsVisibility()
 		return self.c4dTabTiles.SetGroupsVisibility({grp: not val for grp in visibilities.keys()})
 
 	def rescan(self):

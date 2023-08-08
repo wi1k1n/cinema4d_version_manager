@@ -503,6 +503,7 @@ class C4DTilesWidget(QScrollArea):
 	CACHE_FILENAME = 'cache.json'
 	
 	c4dStatusChanged = pyqtSignal(C4DInfo, int)
+	mouseDoubleClickedSignal = pyqtSignal(QMouseEvent)
 
 	def __init__(self, parent: QWidget | None = None) -> None:
 		self.mainWindow = parent # TODO: this is bad design!
@@ -657,8 +658,7 @@ class C4DTilesWidget(QScrollArea):
 		self._rebuildWidget()
 
 	def mouseDoubleClickEvent(self, evt: QMouseEvent):
-		print(evt)
-		super().mouseDoubleClickEvent(evt)
+		self.mouseDoubleClickedSignal.emit(evt)
 	
 	def SaveCache(self):
 		saveFilePath: str = self.GetCacheSavePath()

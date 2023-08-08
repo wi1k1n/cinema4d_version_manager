@@ -47,6 +47,7 @@
 * [ ] Change gitlab to github logo, + private -> public access
 * [ ] Ctrl+Shift+B -> BugsLife -> Open issues on github/gitlab
 * [ ] Ctrl+O -> add search path and open preferences
+* [ ] Esc -> Close shortcuts window
 
 ### Bugs:
 * Color picker for tags is behind edit window

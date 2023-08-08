@@ -403,11 +403,12 @@ class PreferencesWindow(QMainWindow):
 	def _setRunOnStartup(self, val: int):
 		if startupPath := GetStartupPath():
 			if QMessageBox.information(self, 'Instructions', 'Two folders will be opened for you.'\
-				'\nCopy executable file (Ctrl+C) from the first one, and paste a shortcut'\
-				' (Right Mouse Button -> Paste shortcut) in the second on. Do you want to continue?',
+				'\n1. Copy executable file (Ctrl+C) from the first one'\
+				'\n2. Paste a shortcut (Right Mouse Button -> Paste shortcut) in the second one.'\
+				'\n\nDo you want to continue?',
 				QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-				ShowFileInDefaultExplorer(GetCurrentExecutablePath())
 				OpenFolderInDefaultExplorer(startupPath)
+				ShowFileInDefaultExplorer(GetCurrentExecutablePath())
 			# CreateSymlink(executablePath, os.path.join(startupPath, os.path.split(executablePath)[1])) # not enough access rights!
 	
 	@staticmethod
