@@ -192,11 +192,11 @@ class C4DTile(QFrame):
 			if folderName.startswith('C4D'): # it's installation
 				tokens: list[str] = folderName.split(' ')
 				if len(tokens) < 5: return folderName[:20]
-				return f'{tokens[1]} {tokens[4]}' # branch + commit hash
+				return f'{tokens[1]} {tokens[4][:9]}' # branch + commit hash
 			# it's a package
 			tokens: list[str] = folderName.split('_')
 			if len(tokens) < 2: return folderName[:20]
-			return f'{tokens[0]} {match.group()}'
+			return f'{tokens[0]} {match.group()[:9]}'
 		
 		# it's an old notation with CL
 		if folderName.startswith('C4D'): # it's installation
@@ -222,7 +222,7 @@ class C4DTile(QFrame):
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
-		tagsWidget: QWidget = QWidget()
+		tagsWidget: QWidget = QWidget(self)
 		tagsWidget.setLayout(tagsLayout)
 		tagsDict: dict = self.parentTilesWidget.GetTagBindings() if self.parentTilesWidget else None
 		if tagsDict and self.c4d.directory in tagsDict:
@@ -236,6 +236,7 @@ class C4DTile(QFrame):
 				font.setPixelSize(10)
 				tagBubbleWidget.setFont(font)
 				tagsLayout.addWidget(tagBubbleWidget)
+		tagsWidget.setVisible(bool(tagsLayout.count()))
 		return tagsWidget
 	
 	def _mouseClicked(self, evt: QMouseEvent):
