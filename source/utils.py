@@ -8,9 +8,16 @@ from PyQt5.QtCore import QUrl, QMimeData, QProcess
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QApplication
 
-RES_FOLDER = os.path.join(os.getcwd(), 'res')
-IMAGES_FOLDER = os.path.join(RES_FOLDER, 'images')
-C4D_ICONS_FOLDER = os.path.join(IMAGES_FOLDER, 'c4d')
+def NormalizePath(path: str) -> str:
+	return path.replace('/', '\\')
+
+def OsPathJoin(path, *paths) -> str:
+	res: str = os.path.join(path, *paths)
+	return NormalizePath(res)
+
+RES_FOLDER = OsPathJoin(os.getcwd(), 'res')
+IMAGES_FOLDER = OsPathJoin(RES_FOLDER, 'images')
+C4D_ICONS_FOLDER = OsPathJoin(IMAGES_FOLDER, 'c4d')
 
 C4DTAG_MIMETYPE = 'text/c4dtaguuid'
 
@@ -20,7 +27,7 @@ def GenerateUUID() -> str:
 	return str(uuid.uuid4())
 
 def GetPrefsFolderPath() -> str:
-	path: str = os.path.join(GetAppDataPath(), 'c4d-version-manager')
+	path: str = OsPathJoin(GetAppDataPath(), 'c4d-version-manager')
 	os.makedirs(path, exist_ok=True)
 	return path
 
@@ -53,7 +60,7 @@ def GetCurrentExecutablePath() -> str:
 		appDir = sys._MEIPASS
 	else:
 		appDir = os.path.dirname(os.path.abspath(__file__))
-	return os.path.join(appDir, os.path.split(sys.argv[0])[1])
+	return OsPathJoin(appDir, os.path.split(sys.argv[0])[1])
 
 def CopyFileToClipboard(src: str) -> bool:
 	if not os.path.isfile(src):
@@ -193,10 +200,10 @@ class C4DInfo:
 		self.directoryPrefs: str = dirPrefs if dirPrefs else ''
 
 	def GetPathExecutable(self) -> str:
-		return os.path.join(self.directory, 'Cinema 4D.exe')
+		return OsPathJoin(self.directory, 'Cinema 4D.exe')
 
 	def GetPathConfigCinema(self) -> str:
-		return os.path.join(self.GetPathFolderResource(), 'config.cinema4d.txt')
+		return OsPathJoin(self.GetPathFolderResource(), 'config.cinema4d.txt')
 	
 	def GetPathFolderRoot(self) -> str:
 		return self.directory
@@ -205,13 +212,13 @@ class C4DInfo:
 		return os.path.basename(self.GetPathFolderRoot())
 
 	def GetPathFolderResource(self) -> str:
-		return os.path.join(self.directory, 'resource')
+		return OsPathJoin(self.directory, 'resource')
 	
 	def GetPathFolderPrefs(self) -> str:
 		return self.directoryPrefs
 
 	def GetPathFolderPlugins(self) -> str:
-		return os.path.join(self.directoryPrefs, 'plugins')
+		return OsPathJoin(self.directoryPrefs, 'plugins')
 	
 	def GetVersionString(self, formatted: bool = True, full: bool = False) -> str:
 		major: str = self.version[0]
@@ -239,7 +246,7 @@ class C4DTileGroup:
 
 # Tries to find corresponding preferences folder in the APPDATA directory
 def FindC4DPrefsFolder(folderPath: str) -> str | None:
-	appDataMaxonPath: str = os.path.join(GetAppDataPath(), 'Maxon')
+	appDataMaxonPath: str = OsPathJoin(GetAppDataPath(), 'Maxon')
 	if not os.path.isdir(appDataMaxonPath):
 		return None
 	
@@ -254,7 +261,7 @@ def FindC4DPrefsFolder(folderPath: str) -> str | None:
 		suffix: str = dir[c4dDirNameLen:]
 		if not re.match(suffixPattern, suffix):
 			continue
-		return os.path.join(appDataMaxonPath, dir)
+		return OsPathJoin(appDataMaxonPath, dir)
 	return None
 
 # Checks given folder path for containing Cinema 4D version
@@ -262,16 +269,16 @@ C4D_NECESSARY_FILES = ['Cinema 4D.exe']
 C4D_NECESSARY_FOLDERS = ['corelibs', 'resource']
 def GetC4DInfoFromFolder(folderPath: str) -> C4DInfo | None:
 	for file in C4D_NECESSARY_FILES:
-		curPath: str = os.path.join(folderPath, file)
+		curPath: str = OsPathJoin(folderPath, file)
 		if not os.path.isfile(curPath):
 			return None
 	for file in C4D_NECESSARY_FOLDERS:
-		curPath: str = os.path.join(folderPath, file)
+		curPath: str = OsPathJoin(folderPath, file)
 		if not os.path.isdir(curPath):
 			return None
 
 	# Get Cinema version
-	versionPath: str = os.path.join(folderPath, 'resource', 'version.h')
+	versionPath: str = OsPathJoin(folderPath, 'resource', 'version.h')
 	if not os.path.isfile(versionPath):
 		return None
 
@@ -306,7 +313,7 @@ def FindCinemaPackagesInFolder(path, maxDepth = 2) -> dict[str, C4DInfo]:
 
 	def getDirList(pathDir: str) -> list[str]:
 		try:
-			dirList: list[str] = [os.path.join(pathDir, d) for d in os.listdir(pathDir)]
+			dirList: list[str] = [OsPathJoin(pathDir, d) for d in os.listdir(pathDir)]
 			return list(filter(lambda d: os.path.isdir(d), dirList))
 		except:
 			pass

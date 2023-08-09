@@ -45,7 +45,7 @@ from gui_utils import *
 # 		super().__init__(parent)
 
 # 		self.setFixedSize(100, 100)
-# 		self.pixMap: QPixmap = QPixmap(os.path.join(C4D_ICONS_FOLDER, 'Color Purple.png'))
+# 		self.pixMap: QPixmap = QPixmap(oOsPathJoin(C4D_ICONS_FOLDER, 'Color Purple.png'))
 		
 
 # 	def paintEvent(self, evt: QPaintEvent) -> None:
@@ -174,8 +174,8 @@ class C4DTile(QFrame):
 		useRondalds: bool = self.GetPreference('appearance_ronalds-icons')
 		c4dIconName: str = ('C4D ' + self.c4d.GetVersionMajor() + '.png') if useRondalds else '_C4D.png'
 		c4dIconNameFallback: str = 'C4D Color Purple.png' if useRondalds else '_C4D.png'
-		c4dIconPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconName)
-		c4dIconFallbackPath: str = os.path.join(C4D_ICONS_FOLDER, c4dIconNameFallback)
+		c4dIconPath: str = OsPathJoin(C4D_ICONS_FOLDER, c4dIconName)
+		c4dIconFallbackPath: str = OsPathJoin(C4D_ICONS_FOLDER, c4dIconNameFallback)
 		return QPixmap(c4dIconPath if os.path.isfile(c4dIconPath) else c4dIconFallbackPath)
 	
 	def GetPreference(self, attr: str):
@@ -372,8 +372,13 @@ class C4DTile(QFrame):
 		ci: C4DCacheInfo = self.GetCacheInfo()
 		c4dNote: str = ci.note if ci else ''
 		tDt: dt.datetime = GetFolderTimestampCreated(self.c4d.GetPathFolderRoot())
+		dtFormat: str = self.GetPreference('appearance_c4dtile-timestamp-format')
+		try:
+			dt.datetime.now().strftime(dtFormat)
+		except:
+			dtFormat = '%d-%m-%Y %H:%M'
 		return f'{self.c4d.GetPathFolderRoot()}'\
-			 + f'\nCreated {tDt.strftime("%d/%m/%Y %H:%M")}'\
+			 + f'\nCreated {tDt.strftime(dtFormat)}'\
 			+ (f'\nNote: {c4dNote}' if c4dNote else '')
 	
 	def _addActions(self):
@@ -701,4 +706,4 @@ class C4DTilesWidget(QScrollArea):
 	@staticmethod
 	def GetCacheSavePath():
 		prefsFolderPath: str = GetPrefsFolderPath()
-		return os.path.join(prefsFolderPath, C4DTilesWidget.CACHE_FILENAME)
+		return OsPathJoin(prefsFolderPath, C4DTilesWidget.CACHE_FILENAME)

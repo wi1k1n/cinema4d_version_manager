@@ -29,7 +29,7 @@ from gui_utils import *
 class ShortcutsWindow(QDialog):
 	def __init__(self, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
-		self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+		# self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
 		
 		shortcuts: dict[str, dict[str, str]] = {
 			'General': {

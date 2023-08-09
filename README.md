@@ -48,12 +48,12 @@
 * [ ] Change gitlab to github logo, + private -> public access
 * [ ] Ctrl+Shift+B -> BugsLife -> Open issues on github/gitlab
 * [ ] Ctrl+O -> add search path and open preferences
-* [ ] Esc -> Close shortcuts window
+* [✔] Esc -> Close shortcuts window
 
 ### Bugs:
-* Color picker for tags is behind edit window
-* Inconsistent disabling entries in preferences on load
-* Normalize slashes in paths
+* [✔] Color picker for tags is behind edit window
+* [ ] Inconsistent disabling entries in preferences on load
+* [✔] Normalize slashes in paths
 
 ### Group/Filter/Sort research
 * [+] Grouping - Single layer (at least for now)

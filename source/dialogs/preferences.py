@@ -164,7 +164,7 @@ class PreferencesWindow(QMainWindow):
 			json.dump(storeDict, fp)
 
 	def _addSearchPath(self, path: str):
-		newItem = QListWidgetItem(path)
+		newItem = QListWidgetItem(NormalizePath(path))
 		self.pathsList.addItem(newItem)
 		self.pathsList.setCurrentItem(newItem)
 	
@@ -409,7 +409,7 @@ class PreferencesWindow(QMainWindow):
 				QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
 				OpenFolderInDefaultExplorer(startupPath)
 				ShowFileInDefaultExplorer(GetCurrentExecutablePath())
-			# CreateSymlink(executablePath, os.path.join(startupPath, os.path.split(executablePath)[1])) # not enough access rights!
+			# CreateSymlink(executablePath, OsPathJoin(startupPath, os.path.split(executablePath)[1])) # not enough access rights!
 	
 	@staticmethod
 	def _connectWidgetsIsEnabledToCheckbox(cb: QCheckBox, widgets: list[QWidget]):
@@ -421,4 +421,4 @@ class PreferencesWindow(QMainWindow):
 	@staticmethod
 	def GetPreferencesSavePath():
 		prefsFolderPath: str = GetPrefsFolderPath()
-		return os.path.join(prefsFolderPath, PreferencesWindow.PREFERENCES_FILENAME)
+		return OsPathJoin(prefsFolderPath, PreferencesWindow.PREFERENCES_FILENAME)

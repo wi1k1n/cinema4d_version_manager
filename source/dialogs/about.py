@@ -77,7 +77,7 @@ class AboutWindow(FadeInOutDialog):
 
 		# First row: Icon + Label
 		picLabel: QLabel = QLabel(self)
-		pixMap: QPixmap = QPixmap(os.path.join(IMAGES_FOLDER, 'icon.png'))
+		pixMap: QPixmap = QPixmap(OsPathJoin(IMAGES_FOLDER, 'icon.png'))
 		picLabel.setScaledContents(True)
 		picLabel.setPixmap(pixMap)
 		picLabel.setFixedSize(54, 54)
@@ -114,7 +114,7 @@ class AboutWindow(FadeInOutDialog):
 
 		# Contribute line
 		contributePicLabel: QLabelClickable = QLabelClickable(self)
-		contributePixmap: QPixmap = QPixmap(os.path.join(IMAGES_FOLDER, 'gitlab.png'))
+		contributePixmap: QPixmap = QPixmap(OsPathJoin(IMAGES_FOLDER, 'gitlab.png'))
 		contributePicLabel.setScaledContents(True)
 		contributePicLabel.setPixmap(contributePixmap)
 		contributePicLabel.setFixedSize(38, 38)

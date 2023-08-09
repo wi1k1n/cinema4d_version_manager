@@ -169,7 +169,7 @@ class ManageTagDialog(QDialog):
 	def __init__(self, parent: QWidget | None = None, tag: C4DTag | None = None) -> None:
 		super().__init__(parent)
 
-		self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+		# self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
 		
 		self.tagUUID: str = tag.uuid if tag else ''
 		self.lineEditName: QLineEdit = QLineEdit()
@@ -240,7 +240,7 @@ class TagsWindow(QDockWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
-		self.manageTagWindow: ManageTagDialog = ManageTagDialog()
+		self.manageTagWindow: ManageTagDialog = ManageTagDialog(self)
 		self.tagWidgets: list[TagWidget] = list()
 
 		self.setWindowTitle("Tags")

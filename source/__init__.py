@@ -37,7 +37,7 @@ class C4DVersionManagerApplication(QApplication):
 		self.mainWindow: MainWindow = MainWindow()
 		self.mainWindow.hideToTraySignal.connect(self._hideToTray)
 
-		self.iconApp: QIcon = QIcon(os.path.join(IMAGES_FOLDER, 'icon.png'))
+		self.iconApp: QIcon = QIcon(OsPathJoin(IMAGES_FOLDER, 'icon.png'))
 		self.setWindowIcon(self.iconApp)
 		
 		font: QFont = self.font()
