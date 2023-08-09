@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
 			'tags': TagsWindow(),
 			'filtersort': FilterSortWindow(),
 			'about': AboutWindow(self),
-			'help': ShortcutsWindow(),
+			'help': ShortcutsWindow(self),
 		}
 
 		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget(self)
@@ -112,8 +112,11 @@ class MainWindow(QMainWindow):
 		self.rescan()
 		self.c4dTabTiles.LoadCache()
 
-		self.openTagsWindow()
-		# self.openFilterSortWindow()
+		self.addDockWidget(Qt.LeftDockWidgetArea, self.dialogs['filtersort'])
+		self.dialogs['filtersort'].hide()
+		# self.toggleOpenFilterSortWindow()
+		self.addDockWidget(Qt.RightDockWidgetArea, self.dialogs['tags'])
+		self.toggleOpenTagsWindow()
 
 		# TODO: handle this better as a first run guidance
 		# Offer user to open settings
@@ -153,7 +156,7 @@ class MainWindow(QMainWindow):
 		self.actionFiltersort.setShortcut("Ctrl+F")
 
 		self.actionFoldAll = QAction("Toggle &fold all", self)
-		self.actionFoldAll.setShortcut("Ctrl+G,Ctrl+G")
+		self.actionFoldAll.setShortcut("Ctrl+A")
 
 		self._createGroupActions()
 		
@@ -164,8 +167,8 @@ class MainWindow(QMainWindow):
 		self.actionShortcuts.triggered.connect(self.help)
 		self.actionRefresh.triggered.connect(lambda: self.updateTilesWidget())
 		self.actionRescan.triggered.connect(self.rescan)
-		self.actionTags.triggered.connect(self.openTagsWindow)
-		self.actionFiltersort.triggered.connect(self.openFilterSortWindow)
+		self.actionTags.triggered.connect(self.toggleOpenTagsWindow)
+		self.actionFiltersort.triggered.connect(self.toggleOpenFilterSortWindow)
 		self.actionFoldAll.triggered.connect(self._toggleFoldAllC4DGroups)
 		
 		# # Adding help tips
@@ -175,19 +178,19 @@ class MainWindow(QMainWindow):
 
 	def _createGroupActions(self):
 		actionsGroupingDict = { # key -> (show_txt, QColor, Shortcut)
-			'none': ('&No grouping', None, 'Ctrl+G,Ctrl+N'),
-			'paths': ('Group by search &folders', None, 'Ctrl+G,Ctrl+F'),
-			'version': ('Group by &version', None, 'Ctrl+G,Ctrl+V'),
-			'tag': ('Group by &tag', None, 'Ctrl+G,Ctrl+T'),
-			'status': ('Group by &status', None, 'Ctrl+G,Ctrl+S'),
+			'none': ('&No grouping', None, ['Ctrl+G,Ctrl+G']),
+			'paths': ('Group by search &folders', None, ['Ctrl+G,Ctrl+F', 'Ctrl+1']),
+			'version': ('Group by &version', None, ['Ctrl+G,Ctrl+V', 'Ctrl+2']),
+			'tag': ('Group by &tag', None, ['Ctrl+G,Ctrl+T', 'Ctrl+3']),
+			'status': ('Group by &status', None, ['Ctrl+G,Ctrl+S', 'Ctrl+4']),
 		}
 		# for tag in self.GetTags():
 		# 	actionsGroupingDict[f'tag:{tag.uuid}'] = (f'Group by tag \'{tag.name}\'', tag.color)
 
 		def createCheckableAction(key: str) -> QAction:
-			txt, color, shortcut = actionsGroupingDict[key]
+			txt, color, shortcuts = actionsGroupingDict[key]
 			action: QAction = QAction(txt)
-			action.setShortcut(shortcut)
+			action.setShortcuts(shortcuts)
 			action.triggered.connect(partial(self._changeGrouping, key, True))
 			# if color:
 			# 	pixmap: QPixmap = QPixmap(20, 20)
@@ -307,17 +310,18 @@ class MainWindow(QMainWindow):
 	def help(self):
 		self._showActivateDialog('help')
 
-	def openTagsWindow(self):
-		KEY = 'tags'
-		if dlg := self._getDialog(KEY):
-			self.addDockWidget(Qt.RightDockWidgetArea, dlg)
-			self._showActivateDialog(KEY)
+	def toggleOpenTagsWindow(self):
+		self.toggleOpenWindow('tags')
 
-	def openFilterSortWindow(self):
-		KEY = 'filtersort'
-		if dlg := self._getDialog(KEY):
-			self.addDockWidget(Qt.LeftDockWidgetArea, dlg)
-			self._showActivateDialog(KEY)
+	def toggleOpenFilterSortWindow(self):
+		self.toggleOpenWindow('filtersort')
+	
+	def toggleOpenWindow(self, windowKey: str):
+		if dlg := self._getDialog(windowKey):
+			if dlg.isVisible():
+				dlg.hide()
+			else:
+				self._showActivateDialog(windowKey)
 	
 	def _getDialog(self, dialogKey: str) -> QWidget | None:
 		if dialogKey not in self.dialogs:

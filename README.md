@@ -13,7 +13,7 @@
 * [○] Group/Filter/Sort
 	* [○] Create layout
 	* [ ] Add functionality to the layout
-	* [ ] Adjust appearing behavior (executing action should toggle tag/filter window state, rather than always openning it)
+	* [✔] Adjust appearing behavior (executing action should toggle tag/filter window state, rather than always openning it)
 * [○] Tag window improvements
 	* [ ] Space bar pressed while dragging applies tag but doesn't break dragging
 	* [✔] Means to sort tags (e.g. via context menu)
@@ -37,7 +37,8 @@
 	* ~~[ ] custom regex instead of "trim c4d version"~~
 	* [ ] Add "Nothing found, change search paths and Rescan (Ctrl + F5)" label if no cinema was found
 * [ ] Regular Tiles view
-	* [ ] double click on empty space -> default grouping (set default in preferences)
+	* [ ] Show string from build.txt
+	* [✔] double click on empty space -> default grouping (set default in preferences)
 	* [ ] try saving scrollbar position, such that after updatetiles it stays where it was
 	* [ ] Revisit modifiers with clicks -> unify UX-wise
 	* [ ] Small triangle sign on top-right corner of each tile, showing that c4d is installed

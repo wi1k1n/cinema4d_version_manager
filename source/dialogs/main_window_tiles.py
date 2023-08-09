@@ -246,21 +246,21 @@ class C4DTile(QFrame):
 	def _getActionForMouseClick(self, button: Qt.MouseButton, modifiers: Qt.KeyboardModifiers):
 		if button == Qt.LeftButton:
 			if modifiers & Qt.KeyboardModifier.ControlModifier:
-				if modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Ctrl+Shift+LClick: open prefs folder
-					return self.actionOpenFolderPrefs
-				else: 														# Ctrl+LClick: run with console
+				if modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Ctrl+Shift+LClick
+					return self.actionRestartC4D
+				else: 														# Ctrl+LClick
 					return self.actionRunC4DConsole
-			elif modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Shift+LClick: open c4d folder
-				return self.actionOpenFolder
-			else: 															# LClick: run c4d
+			elif modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Shift+LClick
+				return self.actionKillC4D
+			else: 															# LClick
 				return self.actionRunC4D
 		if button == Qt.MiddleButton:
-			if modifiers & Qt.KeyboardModifier.ControlModifier:
-				return self.actionRestartC4D 								# Ctrl+MClick: restart c4d
-			elif modifiers & Qt.KeyboardModifier.ShiftModifier:
-				return self.actionKillC4D 									# Shift+MClick: kill c4d
-			else:
-				return self.actionActivateC4D 								# MClick: activate c4d
+			if modifiers & Qt.KeyboardModifier.ControlModifier: 			# Ctrl+MClick
+				return self.actionOpenFolder
+			elif modifiers & Qt.KeyboardModifier.ShiftModifier: 			# Shift+MClick
+				return self.actionOpenFolderPrefs
+			else: 															# MClick
+				return self.actionActivateC4D
 		return None
 
 	def _runC4D(self, args: list[str] = []):

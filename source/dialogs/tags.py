@@ -261,7 +261,6 @@ class TagsWindow(QDockWidget):
 		mainArea.setWidget(widget)
 		self.setWidget(mainArea)
 
-		self.mouseDoubleClickEvent = lambda evt: self._openManageTagWindowNew()
 		self.manageTagWindow.accepted.connect(self._onManageTagAccepted)
 
 		# Actions
@@ -299,9 +298,12 @@ class TagsWindow(QDockWidget):
 		with open(tagsFilePath, 'w') as fp:
 			json.dump(storeDict, fp)
 	
+	def mouseDoubleClickEvent(self, evt: QMouseEvent):
+		self._openManageTagWindowNew()
+	
 	def _addTag(self, tag: C4DTag):
 		tagWidget: TagWidget = TagWidget(tag)
-		tagWidget.mouseDoubleClickEvent = partial(self._onTagDblClick, tagWidget)
+		tagWidget.mouseDoubleClickEvent = partial(self._onTagDblClick, tagWidget) # TODO: looks like design issue!
 		tagWidget.tagEditRequestedSignal.connect(partial(self._openManageTagWindowExisting, tagWidget))
 		tagWidget.tagRemoveRequestedSignal.connect(partial(self._removeTag, tagWidget.GetTag()))
 		tagWidget.tagMoveRequestedSignal.connect(partial(self._moveTag, tagWidget.GetTag()))
@@ -312,9 +314,9 @@ class TagsWindow(QDockWidget):
 	def _onTagDblClick(self, tagWidget: TagWidget, evt: QMouseEvent):
 		if evt.button() == Qt.LeftButton:
 			if evt.modifiers() & Qt.ControlModifier:
-				self._groupByTag(tagWidget.GetTag())
-			else:
 				self._openManageTagWindowExisting(tagWidget)
+			else:
+				self._groupByTag(tagWidget.GetTag())
 	
 	def _getTags(self) -> list[C4DTag]:
 		return [tW.GetTag() for tW in self.tagWidgets]

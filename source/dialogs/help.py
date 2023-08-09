@@ -26,34 +26,35 @@ from utils import *
 from gui_utils import *
 
 
-class ShortcutsWindow(QWidget):
+class ShortcutsWindow(QDialog):
 	def __init__(self, parent: QWidget | None = None) -> None:
 		super().__init__(parent)
+		self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
 		
 		shortcuts: dict[str, dict[str, str]] = {
 			'General': {
 				'position': (0, 0),
 				'content': {
-					'Ctrl + O': 			'Add search folder',
+					# 'Ctrl + O': 			'Add search folder',
 					'Ctrl + S': 			'Save c4d cache and tags info',
 					'Ctrl + E': 			'Preference',
 					'F1': 					'Show this cheatsheet',
 					'F5': 					'Update tiles view',
-					'Ctrl + F5': 			'Rescan',
-					'Ctrl + T': 			'Open Tags window',
-					'Ctrl + F': 			'Open Search/Filter/Sort window',
+					'Ctrl + F5': 			'Rescan search paths',
+					'Ctrl + T': 			'Open/Close Tags window',
+					'Ctrl + F': 			'Open/Close Search-Filter-Sort window',
 				}
 			},
 			'Grouping': {
 				'position': (1, 0),
 				'content': {
-					'Ctrl + G': 			'Toggle fold all',
-					'Ctrl + 1': 			'No grouping',
-					'Ctrl + 2': 			'Group by search paths',
-					'Ctrl + 3': 			'Group by c4d version',
-					'Ctrl + 4': 			'Group by tags',
-					'Ctrl + 5': 			'Group by c4d status',
-					'Alt + N': 				'Apply N-th custom grouping view',
+					'Ctrl + A': 			'Toggle fold all',
+					'Ctrl + G, Ctrl + G': 	'No grouping',
+					('Ctrl + 1', 'Ctrl + G, Ctrl + F'): 'Group by search paths',
+					('Ctrl + 2', 'Ctrl + G, Ctrl + V'): 'Group by c4d version',
+					('Ctrl + 3', 'Ctrl + G, Ctrl + T'): 'Group by tags',
+					('Ctrl + 4', 'Ctrl + G, Ctrl + S'): 'Group by c4d status',
+					# 'Alt + N': 				'Apply N-th custom grouping view',
 					'Empty Double LMB': 	'Apply default grouping view',
 				}
 			},
@@ -72,12 +73,12 @@ class ShortcutsWindow(QWidget):
 			'Tag management': {
 				'position': (1, 1),
 				'content': {
-					'Tag D&D': 				'Assign tag to C4D',
-					'Tag Ctrl + D&D': 		'Insert tag to C4D as first',
-					'Tag Shift + D&D': 		'Remove tag assignment from C4D',
-					'Tag Ctrl + Double LMB': 'Group by Tag + isolate current tag',
-					'Tag Double LMB': 		'Edit tag',
-					'Empty Double LMB': 	'Create new tag',
+					'D&D': 					'Assign tag to C4D',
+					'Ctrl + D&D': 			'Insert tag to C4D as first',
+					'Shift + D&D': 			'Remove tag assignment from C4D',
+					'Ctrl + Double LMB': 	'Edit tag',
+					'Double LMB': 			'Group by Tag + isolate current tag',
+					'(Empty) Double LMB': 	'Create new tag',
 				}
 			},
 		}
@@ -122,8 +123,18 @@ class ShortcutsWindow(QWidget):
 			lbl.setFont(font)
 			lbl.setContentsMargins(QMargins(10, 10, 0, 0))
 			return lbl
-		def createShortcutLabel(txt: str) -> QLabel:
-			lbl: QLabel = QLabel(txt)
+		def createShortcutLabel(txt: tuple[str] | str) -> QLabel:
+			text: str = txt
+			if isinstance(txt, tuple):
+				if len(txt) == 1:
+					text = txt[0]
+				else:
+					POSTFIX = ' or\n'
+					text = ''
+					for sc in txt:
+						text += sc + POSTFIX
+					text = text[:len(text) - len(POSTFIX)]
+			lbl: QLabel = QLabel(text)
 			lbl.setFont(QFont(APPLICATION_FONT_FAMILY, 10))
 			lbl.setMaximumWidth(128)
 			addExtendedAbbreviationTooltip(lbl)
