@@ -91,8 +91,16 @@ class MainWindow(QMainWindow):
 		# 	for j in range(self.c4dTabTableWidget.columnCount()):
 		# 		item.setText(j, f'Col#{i}: text{j}')
 
+		# Stacked widget for tiles, to show no-search-paths disclaimer
+		noSearchPathsDisclaimerLabel: QLabel = QLabel('No C4D instances found!\n\nAdjust paths in preferences and Rescan (Ctrl + F5)', self)
+		noSearchPathsDisclaimerLabel.setAlignment(Qt.AlignCenter)
+		noSearchPathsDisclaimerLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 18))
+		self.c4dTilesStackedContainer: QStackedWidget = QStackedWidget(self)
+		self.c4dTilesStackedContainer.addWidget(noSearchPathsDisclaimerLabel)
+		self.c4dTilesStackedContainer.addWidget(self.c4dTabTiles)
+
 		self.centralWidget = QTabWidget()
-		self.centralWidget.addTab(self.c4dTabTiles, "Tiles")
+		self.centralWidget.addTab(self.c4dTilesStackedContainer, "Tiles")
 		# self.centralWidget.addTab(self.c4dTabTableWidget, "Table")
 		
 		self.setCentralWidget(self.centralWidget)
@@ -123,14 +131,12 @@ class MainWindow(QMainWindow):
 		self.openPreferencesFlag: bool = False
 		if dlg := self._getDialog('preferences'):
 			if not dlg.IsPreferencesLoaded():
-				msg = QMessageBox(QMessageBox.Information, 'Empty preferences..', 'This seems to be a first run of the app. Do you want to start with configuring Search Paths in preferences?', QMessageBox.Yes | QMessageBox.No)
-				if msg.exec_() == QMessageBox.Yes:
-					# find search paths idx
-					for idx, key in enumerate(dlg.categories.keys()):
-						if key.lower() == 'search paths':
-							dlg.categoriesWidget.setCurrentRow(idx)
-							self.openPreferencesFlag = True
-							break
+				# find search paths idx
+				for idx, key in enumerate(dlg.categories.keys()):
+					if key.lower() == 'search paths': # bad design!
+						dlg.categoriesWidget.setCurrentRow(idx)
+						self.openPreferencesFlag = True
+						break
 	
 	def _createActions(self):
 		self.actionSave = QAction("&Save", self)
@@ -391,6 +397,7 @@ class MainWindow(QMainWindow):
 				c4dEntries += [v for v in c4dsDict.values()]
 			
 		self.updateTilesWidget(c4dEntries)
+		self.c4dTilesStackedContainer.setCurrentIndex(1 if c4dEntries else 0)
 	
 	def updateTilesWidget(self, newC4DEntries: list[C4DInfo] | None = None, visibilityCallback: Callable[[dict[C4DTileGroup, bool]], None] | None = None):
 		# TODO: Below looks so much like code repetition.. clean it up!

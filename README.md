@@ -35,7 +35,7 @@
 	* [ ] Register global shortcut to open window from background
 		* [ ] Hide on lost focus checkbox in preferences (have doubts it'd be convenient, may be worth testing)
 	* ~~[ ] custom regex instead of "trim c4d version"~~
-	* [ ] Add "Nothing found, change search paths and Rescan (Ctrl + F5)" label if no cinema was found
+	* [✔] Add "Nothing found, change search paths and Rescan (Ctrl + F5)" label if no cinema was found
 * [ ] Regular Tiles view
 	* [ ] Show string from build.txt
 	* [✔] double click on empty space -> default grouping (set default in preferences)
