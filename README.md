@@ -1,59 +1,84 @@
+# Cinema 4D Version Manager
+
+C4D Version Manager is a tiny GUI app that finds and collects all your Cinema 4D instances in one place and helps searching and managing them more efficiently comparing to the common built-in tools.
+
+<img src="/docs/screenshot_main.png" width="640" height="529" />
+
+### Getting Started
+
+#### Pre-built package
+
+1. Download latest version from [Releases](https://github.com/wi1k1n/cinema4d_version_manager/releases)
+2. Run and add your search paths
+3. Save preferences, rescan
+4. Enjoy
+5. \* Learn shortcuts to make your workflow more efficient
+
+#### From source code
+
+The following dependencies are required:
+
+* Python 3 (3.10.0 is originally used)
+* [PyQt5](https://pypi.org/project/PyQt5/)
+* [pywin32](https://pypi.org/project/pywin32/)
+* [keyboard](https://pypi.org/project/keyboard/)
+
 ### Useful links:
 * https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
 * Save/restore UI layout: https://stackoverflow.com/questions/23279125/python-pyqt4-functions-to-save-and-restore-ui-widget-values
 
 ### TODOs:
 * [○] C4D instances interaction:
-	* [✔] Show which c4d instances status on tiles: currently running, closed
-	* [✔] Allow to activate, kill, restart c4d instances
+	* [X] Show which c4d instances status on tiles: currently running, closed
+	* [X] Allow to activate, kill, restart c4d instances
 		* [ ] Activate window (virtual desktops?)
 	* [ ] Enable/Disable actions depending on current state (no restart before running)
-	* [✔] Extend grouping to group by state: running, killed, closed, not started
+	* [X] Extend grouping to group by state: running, killed, closed, not started
 	* [ ] Kill all action
 * [○] Group/Filter/Sort
 	* [○] Create layout
 	* [ ] Add functionality to the layout
-	* [✔] Adjust appearing behavior (executing action should toggle tag/filter window state, rather than always openning it)
+	* [X] Adjust appearing behavior (executing action should toggle tag/filter window state, rather than always openning it)
 * [○] Tag window improvements
 	* [ ] Space bar pressed while dragging applies tag but doesn't break dragging
-	* [✔] Means to sort tags (e.g. via context menu)
+	* [X] Means to sort tags (e.g. via context menu)
 	* [ ] default folded/unfolded group when grouping by tags
 	* [ ] tags customization opportunities:
 		* [ ] tag contains arguments to run c4d with
 		* [ ] tag contains sheets of arguments that are injected into context menu
 		* [ ] can be custom scripts to run before running c4d (overkill!)
-	* [✔] group to the tag in the tag manager (change grouping to "group by tag", + fold all except selected tag)
+	* [X] group to the tag in the tag manager (change grouping to "group by tag", + fold all except selected tag)
 * [ ] Auto saving options
 	* [ ] Store last selected group/filter/sort settings
 	* [ ] Store last layout (tags & filter/sort window states)
 	* [ ] Store device where the window is positioned
 * [○] Preferences
-	* [✔] layouts and layout behavior
-	* [✔] saving/loading preferences
-	* [✔] functionality: app behavior reflects settings
+	* [X] layouts and layout behavior
+	* [X] saving/loading preferences
+	* [X] functionality: app behavior reflects settings
 	* [ ] prepare a list of c4d that are in cache but not found on system anymore
 	* [ ] Register global shortcut to open window from background
 		* [ ] Hide on lost focus checkbox in preferences (have doubts it'd be convenient, may be worth testing)
 	* ~~[ ] custom regex instead of "trim c4d version"~~
-	* [✔] Add "Nothing found, change search paths and Rescan (Ctrl + F5)" label if no cinema was found
+	* [X] Add "Nothing found, change search paths and Rescan (Ctrl + F5)" label if no cinema was found
 * [ ] Regular Tiles view
 	* [ ] Show string from build.txt
-	* [✔] double click on empty space -> default grouping (set default in preferences)
+	* [X] double click on empty space -> default grouping (set default in preferences)
 	* [ ] try saving scrollbar position, such that after updatetiles it stays where it was
-	* [ ] Revisit modifiers with clicks -> unify UX-wise
+	* [X] Revisit modifiers with clicks -> unify UX-wise
 	* [ ] Small triangle sign on top-right corner of each tile, showing that c4d is installed
 * [ ] Tiles desktop view
 	* [ ] A separate tab with draggable c4d tiles that work with search, but doesn't have any grouping options
-* [✔] Shortcuts window in 'Help' section
-* [✔] Change gitlab to github logo, + private -> public access
-* [✔] Ctrl+Shift+B -> Bugs tracking -> Open issues on github/gitlab
+* [X] Shortcuts window in 'Help' section
+* [X] Change gitlab to github logo, + private -> public access
+* [X] Ctrl+Shift+B -> Bugs tracking -> Open issues on github/gitlab
 * [ ] Ctrl+O -> add search path and open preferences
-* [✔] Esc -> Close shortcuts window
+* [X] Esc -> Close shortcuts window
 
 ### Bugs:
-* [✔] Color picker for tags is behind edit window
+* [X] Color picker for tags is behind edit window
 * [ ] Inconsistent disabling entries in preferences on load
-* [✔] Normalize slashes in paths
+* [X] Normalize slashes in paths
 
 ### Group/Filter/Sort research
 * [+] Grouping - Single layer (at least for now)
