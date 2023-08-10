@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
-from dialogs.help import ShortcutsWindow
+from dialogs.help import ShortcutsWindow, TrackBugsWindow
 from dialogs.tags import TagsWindow, C4DTag
 from dialogs.filtersort import FilterSortWindow
 from dialogs.main_window_tiles import *
@@ -77,6 +77,7 @@ class MainWindow(QMainWindow):
 			'filtersort': FilterSortWindow(),
 			'about': AboutWindow(self),
 			'help': ShortcutsWindow(self),
+			'trackbugs': TrackBugsWindow(self),
 		}
 
 		self.c4dTabTiles: C4DTilesWidget = C4DTilesWidget(self)
@@ -149,6 +150,8 @@ class MainWindow(QMainWindow):
 		self.actionAbout = QAction("&About", self)
 		self.actionShortcuts = QAction("&Shortcuts", self)
 		self.actionShortcuts.setShortcut("F1")
+		self.actionReportBug = QAction("&Report a bug", self)
+		self.actionReportBug.setShortcut("Ctrl+Shift+B")
 		
 		self.actionRefresh = QAction("&Refresh", self)
 		self.actionRefresh.setShortcut(QKeySequence.Refresh)
@@ -171,6 +174,7 @@ class MainWindow(QMainWindow):
 		self.actionExit.triggered.connect(sys.exit)
 		self.actionAbout.triggered.connect(self.about)
 		self.actionShortcuts.triggered.connect(self.help)
+		self.actionReportBug.triggered.connect(lambda: self._showActivateDialog('trackbugs'))
 		self.actionRefresh.triggered.connect(lambda: self.updateTilesWidget())
 		self.actionRescan.triggered.connect(self.rescan)
 		self.actionTags.triggered.connect(self.toggleOpenTagsWindow)
@@ -238,6 +242,7 @@ class MainWindow(QMainWindow):
 
 		helpMenu = menuBar.addMenu("&Help")
 		helpMenu.addAction(self.actionShortcuts)
+		helpMenu.addAction(self.actionReportBug)
 		helpMenu.addAction(self.actionAbout)
 	
 	@staticmethod

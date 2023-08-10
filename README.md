@@ -45,8 +45,8 @@
 * [ ] Tiles desktop view
 	* [ ] A separate tab with draggable c4d tiles that work with search, but doesn't have any grouping options
 * [✔] Shortcuts window in 'Help' section
-* [ ] Change gitlab to github logo, + private -> public access
-* [ ] Ctrl+Shift+B -> BugsLife -> Open issues on github/gitlab
+* [✔] Change gitlab to github logo, + private -> public access
+* [✔] Ctrl+Shift+B -> Bugs tracking -> Open issues on github/gitlab
 * [ ] Ctrl+O -> add search path and open preferences
 * [✔] Esc -> Close shortcuts window
 

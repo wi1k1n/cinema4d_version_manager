@@ -114,7 +114,7 @@ class AboutWindow(FadeInOutDialog):
 
 		# Contribute line
 		contributePicLabel: QLabelClickable = QLabelClickable(self)
-		contributePixmap: QPixmap = QPixmap(OsPathJoin(IMAGES_FOLDER, 'gitlab.png'))
+		contributePixmap: QPixmap = QPixmap(OsPathJoin(IMAGES_FOLDER, 'github.png'))
 		contributePicLabel.setScaledContents(True)
 		contributePicLabel.setPixmap(contributePixmap)
 		contributePicLabel.setFixedSize(38, 38)

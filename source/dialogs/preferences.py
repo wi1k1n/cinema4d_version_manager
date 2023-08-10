@@ -96,7 +96,7 @@ class PreferencesWindow(QMainWindow):
 
 		centralWidget = QWidget()
 		centralWidget.setLayout(self.prefsLayout)
-		centralWidget.setMinimumWidth(self.width())
+		centralWidget.setMinimumWidth(480)
 		self.setCentralWidget(centralWidget)
 
 	def GetPreference(self, attr: str) -> ...:

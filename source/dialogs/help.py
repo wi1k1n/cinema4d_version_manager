@@ -156,3 +156,26 @@ class ShortcutsWindow(QDialog):
 		
 		# self.setFixedSize(self.size())
 		self.setFixedSize(800, 500)
+
+class TrackBugsWindow(QDialog):
+	def __init__(self, parent: QWidget | None = None) -> None:
+		super().__init__(parent)
+		self.setWindowTitle('C4D Version Manager: Report a bug')
+
+		infoLabel: QLabel = QLabel('External bug tracking is usually better:', self)
+		infoLabel.setAlignment(Qt.AlignCenter)
+		infoLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 14))
+
+		linkLabel: QLabel = QLabel('<a href="https://github.com/wi1k1n/cinema4d_version_manager/issues">https://github.com/wi1k1n/cinema4d_version_manager/issues</a>', self)
+		linkLabel.setFont(QFont(APPLICATION_FONT_FAMILY, 12))
+		linkLabel.setOpenExternalLinks(True)
+		linkLabel.setTextInteractionFlags(Qt.TextBrowserInteraction)
+		linkLabel.setTextFormat(Qt.RichText)
+
+		layout: QVBoxLayout = QVBoxLayout()
+		layout.addWidget(infoLabel)
+		layout.addWidget(linkLabel)
+
+		self.setLayout(layout)
+		minSize: QSize = self.minimumSizeHint()
+		self.setFixedSize(minSize.width() + 20, minSize.height() + 20)
