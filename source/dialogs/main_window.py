@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
 		self.resize(1420, 840)
 		self.setMinimumSize(350, 250)
 
+		# Save/restore UI layout: https://stackoverflow.com/questions/23279125/python-pyqt4-functions-to-save-and-restore-ui-widget-values
 		self.dialogs = {
 			'preferences': PreferencesWindow(self),
 			'tags': TagsWindow(),
