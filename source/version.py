@@ -1,6 +1,6 @@
 import os
 
-C4DL_VERSION = '0.0.1'
+C4DL_VERSION = '0.1.0'
 BUILD_VERSION = ''
 
 def _loadBuildInfo(rootPath: str):
