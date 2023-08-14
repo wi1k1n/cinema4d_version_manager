@@ -194,9 +194,10 @@ class C4DCacheInfo:
 
 # Information about cinema that can be extracted from filesystem
 class C4DInfo:
-	def __init__(self, dir: str, ver: list[str], dirPrefs: str | None = None) -> None:
-		self.version: list[str] = ver
+	def __init__(self, dir: str, ver: list[str], build: str = '', dirPrefs: str | None = None) -> None:
 		self.directory: str = dir
+		self.version: list[str] = ver
+		self.build: str = build
 		self.directoryPrefs: str = dirPrefs if dirPrefs else ''
 
 	def GetPathExecutable(self) -> str:
@@ -229,6 +230,9 @@ class C4DInfo:
 	def GetVersionMajor(self, formatted: bool = True) -> str:
 		major: str = self.version[0]
 		return ('R' if len(major) != 4 and formatted else '') + major
+	
+	def GetBuildString(self) -> str:
+		return self.build
 
 class C4DTileGroup:
 	def __init__(self, indices: list[int] = list(), name: str = '', key: Any = None) -> None:
@@ -268,6 +272,7 @@ def FindC4DPrefsFolder(folderPath: str) -> str | None:
 C4D_NECESSARY_FILES = ['Cinema 4D.exe']
 C4D_NECESSARY_FOLDERS = ['corelibs', 'resource']
 def GetC4DInfoFromFolder(folderPath: str) -> C4DInfo | None:
+	### Validate this folder contains C4D
 	for file in C4D_NECESSARY_FILES:
 		curPath: str = OsPathJoin(folderPath, file)
 		if not os.path.isfile(curPath):
@@ -277,7 +282,7 @@ def GetC4DInfoFromFolder(folderPath: str) -> C4DInfo | None:
 		if not os.path.isdir(curPath):
 			return None
 
-	# Get Cinema version
+	### Get Cinema version
 	versionPath: str = OsPathJoin(folderPath, 'resource', 'version.h')
 	if not os.path.isfile(versionPath):
 		return None
@@ -300,10 +305,20 @@ def GetC4DInfoFromFolder(folderPath: str) -> C4DInfo | None:
 	for v in c4dVersion.values():
 		if v == -1:
 			return None
+	
+	### Read build.txt
+	buildPath: str = OsPathJoin(folderPath, 'resource', 'build.txt')
+	if not os.path.isfile(buildPath):
+		return None
+	buildStr: str = ''
+	with open(buildPath) as fp:
+		buildStr: str = fp.readline().strip()
+	if not buildStr:
+		return None
 
 	versionStringsList: list[str] = [str(v) for v in c4dVersion.values()]
 	prefsFolder: str | None = FindC4DPrefsFolder(folderPath)
-	return C4DInfo(folderPath, versionStringsList, prefsFolder)
+	return C4DInfo(folderPath, versionStringsList, buildStr, prefsFolder)
 
 # Traverses directory until maxDepth, returns dict: path -> c4d_version
 def FindCinemaPackagesInFolder(path, maxDepth = 2) -> dict[str, C4DInfo]:

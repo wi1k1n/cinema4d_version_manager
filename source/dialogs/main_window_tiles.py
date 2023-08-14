@@ -90,6 +90,7 @@ class NoteEditorDialog(QDialog):
 		return super().eventFilter(obj, evt)
 
 class C4DTile(QFrame):
+	RAWFOLDERNAME_MAXLEN: int = 64
 	# https://forum.qt.io/topic/90403/show-tooltip-immediatly/6
 	class C4DTileProxyStyle(QProxyStyle):
 		def styleHint(self, hint: QStyle.StyleHint, option: QStyleOption | None = None, widget: QWidget | None = None, returnData: QStyleHintReturn | None = None) -> int:
@@ -191,17 +192,17 @@ class C4DTile(QFrame):
 		if match := commitHashPattern.search(folderName): # it's a new notation with 12 symbol commit hash
 			if folderName.startswith('C4D'): # it's installation
 				tokens: list[str] = folderName.split(' ')
-				if len(tokens) < 5: return folderName[:20]
+				if len(tokens) < 5: return folderName[:C4DTile.RAWFOLDERNAME_MAXLEN]
 				return f'{tokens[1]} {tokens[4][:9]}' # branch + commit hash
 			# it's a package
 			tokens: list[str] = folderName.split('_')
-			if len(tokens) < 2: return folderName[:20]
+			if len(tokens) < 2: return folderName[:C4DTile.RAWFOLDERNAME_MAXLEN]
 			return f'{tokens[0]} {match.group()[:9]}'
 		
 		# it's an old notation with CL
 		if folderName.startswith('C4D'): # it's installation
 			tokens: list[str] = folderName.split(' ')
-			if len(tokens) < 4: return folderName[:20]
+			if len(tokens) < 4: return folderName[:C4DTile.RAWFOLDERNAME_MAXLEN]
 			return f'{tokens[1]} CL{tokens[-1]}'
 		
 		# it's a package
@@ -209,7 +210,7 @@ class C4DTile(QFrame):
 		if match := changeListPattern.search(folderName): # found CL###### token
 			pos, _ = match.span()
 			tokens: list[str] = [x for x in folderName[:pos].split('.') if x]
-			if len(tokens) < 3: return folderName[:20]
+			if len(tokens) < 3: return folderName[:C4DTile.RAWFOLDERNAME_MAXLEN]
 			versionTokensNum = 2 # old R notation, e.g. 26.001
 			if len(tokens[0]) == 4: # it's 202X notation
 				if len(tokens) == 3: # it's 2023.000.branch naming scheme
@@ -218,7 +219,7 @@ class C4DTile(QFrame):
 					versionTokensNum = 3
 			tokens = [''.join(tokens[:versionTokensNum]), '.'.join(tokens[versionTokensNum:])]
 			return f'{tokens[1]} {match.group()}'
-		return folderName[:20]
+		return folderName[:C4DTile.RAWFOLDERNAME_MAXLEN]
 
 	def _createTagsSectionWidget(self):
 		tagsLayout: QHBoxLayout = QHBoxLayout() # TODO: make it work with FlowLayout? # self.tagsLayout: FlowLayout = FlowLayout()
@@ -321,7 +322,7 @@ class C4DTile(QFrame):
 		if self.GetPreference('appearance_c4dtile-adjust-c4d-folder-name'):
 			self.folderLabel.setText(self._getAdjustedC4DFolderName())
 		else:
-			self.folderLabel.setText(self.c4d.GetNameFolderRoot()[:20])
+			self.folderLabel.setText(self.c4d.GetNameFolderRoot()[:C4DTile.RAWFOLDERNAME_MAXLEN])
 		
 		# Timestamp
 		self.timestampLabel.setVisible(self.GetPreference('appearance_c4dtile-show-timestamp'))
@@ -378,6 +379,7 @@ class C4DTile(QFrame):
 		except:
 			dtFormat = '%d-%m-%Y %H:%M'
 		return f'{self.c4d.GetPathFolderRoot()}'\
+			 + f'\nBuild: {self.c4d.build}'\
 			 + f'\nCreated {tDt.strftime(dtFormat)}'\
 			+ (f'\nNote: {c4dNote}' if c4dNote else '')
 	
