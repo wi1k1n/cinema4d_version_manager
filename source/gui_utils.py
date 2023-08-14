@@ -1,18 +1,18 @@
-import typing
+from typing import Any
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import (
-    Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QRectF
+    Qt, QMimeData, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QRectF, QByteArray
 )
 from PyQt5.QtGui import (
     QFont, QDrag, QPixmap, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent,
-	QPainter, QColor, QPalette, QPen, QPainterPath, QRegion, QCursor
+	QPainter, QColor, QPalette, QPen, QPainterPath, QRegion, QCursor, QHideEvent
 )
 from PyQt5.QtWidgets import (
 	QLabel, QMainWindow, QDockWidget, QDialog, QHBoxLayout, QListWidget, QWidget,
 	QVBoxLayout, QPushButton, QListWidgetItem, QStackedWidget, QFileDialog,
 	QLayout, QAbstractItemView, QColorDialog, QFormLayout, QLineEdit,
-	QDialogButtonBox, QSizePolicy, QAction, QLayoutItem, QApplication
+	QDialogButtonBox, QSizePolicy, QAction, QLayoutItem, QApplication, 
 )
 
 def GetApplication() -> QApplication:
@@ -288,3 +288,60 @@ class QLabelClickable(QLabel):
 	def mousePressEvent(self, evt: QMouseEvent) -> None:
 		self.clicked.emit(evt)
 		evt.accept()
+
+class RestorableState():
+	def __init__(self, geom: QByteArray | None = None, visible: bool = True, extras: dict[str, Any] = dict()) -> None:
+		self.geometry: QByteArray | None = None
+		self.visible: bool = True
+		self.extras: dict[str, Any] = dict()
+	
+	def IsValid(self) -> bool:
+		return self.geometry is not None
+
+class RestorableQWidget(QWidget):
+	def __init__(self, parent: QWidget | None = None, flags: Qt.WindowFlags | Qt.WindowType = Qt.WindowFlags()) -> None:
+		super().__init__(parent, flags)
+
+		self.savedRestorableState: RestorableState = RestorableState()
+	
+	def GetRestorableGeometry(self) -> QRect:
+		return self.savedRestorableState.geometry
+	def GetRestorableVisibility(self) -> bool:
+		return self.savedRestorableState.visible
+	
+	def saveRestorableState(self):
+		self.savedRestorableState.geometry = self.saveGeometry()
+		self.savedRestorableState.visible = self.isVisible()
+	
+	def restoreRestorableState(self) -> bool:
+		if not self.savedRestorableState.IsValid():
+			return False
+		restoredGeom: bool = self.restoreGeometry(self.savedRestorableState.geometry)
+		self.setVisible(self.savedRestorableState.visible)
+		return restoredGeom
+
+class RestorableDockWidget(QDockWidget, RestorableQWidget):
+	def __init__(self, parent: QWidget | None = None, flags: Qt.WindowFlags | Qt.WindowType = Qt.WindowFlags()):
+		super(RestorableDockWidget, self).__init__(parent, flags)
+
+		self.dockLocationChanged.connect(self._onDockLocationChanged)
+	
+	def _onDockLocationChanged(self, evt):
+		self.savedRestorableState.extras['area'] = evt
+
+	# DockWidget can't dock itself, hence it's parent who's responsible for docking it back again
+	def GetLastDockedWidgetArea(self) -> Qt.DockWidgetArea:
+		if 'area' not in self.savedRestorableState.extras:
+			return Qt.DockWidgetArea()
+		area: int = self.savedRestorableState.extras['area']
+		if area & Qt.LeftDockWidgetArea:
+			return Qt.LeftDockWidgetArea
+		if area & Qt.RightDockWidgetArea:
+			return Qt.RightDockWidgetArea
+		if area & Qt.TopDockWidgetArea:
+			return Qt.TopDockWidgetArea
+		if area & Qt.BottomDockWidgetArea:
+			return Qt.BottomDockWidgetArea
+		if area & Qt.NoDockWidgetArea:
+			return Qt.NoDockWidgetArea
+		return Qt.AllDockWidgetAreas

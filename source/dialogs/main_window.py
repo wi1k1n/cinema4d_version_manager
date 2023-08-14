@@ -57,7 +57,7 @@ class TestMainWindow(QMainWindow):
 
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, RestorableQWidget):
 	GROUPING_MARK_ASC_PREFIX: str = '▲ '
 	GROUPING_MARK_DESC_PREFIX: str = '▼ '
 
@@ -510,7 +510,6 @@ class MainWindow(QMainWindow):
 			self.currentGrouping = ''
 		
 		self.oldGroupingKey = groupingKey
-
 	
 	def GetTags(self) -> list[C4DTag]:
 		if dlgTags := self._getDialog('tags'):
@@ -526,13 +525,31 @@ class MainWindow(QMainWindow):
 		if self.openPreferencesFlag:
 			self.actionPrefs.trigger()
 
+	def showEvent(self, evt: QShowEvent):
+		if not RestorableQWidget.restoreRestorableState(self):
+			return evt.accept()
+		
+		for v in self.dialogs.values():
+			if v is None or not callable(getattr(v, 'restoreRestorableState', None)):
+				continue
+			v.restoreRestorableState()
+			if isinstance(v, RestorableDockWidget):
+				self.addDockWidget(v.GetLastDockedWidgetArea(), v)
+		evt.accept()
+	
 	def closeEvent(self, evt: QCloseEvent):
 		if self.GetPreference('general_hide-on-close'):
-			self.hide()
-			for v in self.dialogs.values():
+			for v in self.dialogs.values(): # children should be hidden before parent
 				if v is not None:
+					if callable(getattr(v, 'saveRestorableState', None)):
+						v.saveRestorableState()
 					v.hide()
+
+			self.saveRestorableState()
+			self.hide()
+
 			self.hideToTraySignal.emit()
+
 			return evt.ignore()
 		
 		for v in self.dialogs.values():

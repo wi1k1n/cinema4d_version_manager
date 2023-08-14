@@ -37,7 +37,7 @@ from gui_utils import *
 from utils import *
 
 # Might be helpful for searchbox: https://stackoverflow.com/questions/44264852/pyside-pyqt-overlay-widget
-class FilterSortWindow(QDockWidget):
+class FilterSortWindow(RestorableDockWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 

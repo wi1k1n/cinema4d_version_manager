@@ -2,30 +2,17 @@ import os, json, typing, json
 from functools import partial
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import Qt, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QByteArray
-from PyQt5.QtGui import QFont, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette, QPen
+from PyQt5.QtCore import (
+    Qt, QUrl, QRect, QPoint, QTimer, QSize, pyqtSignal, QByteArray
+)
+from PyQt5.QtGui import (
+    QFont, QDesktopServices, QMouseEvent, QShowEvent, QPaintEvent, QPainter, QColor, QPalette,
+	QPen, QCloseEvent, QHideEvent, 
+)
 from PyQt5.QtWidgets import (
-	QLabel,
-	QMainWindow,
-	QDockWidget,
-	QDialog,
-	QHBoxLayout,
-	QListWidget,
-	QWidget,
-	QVBoxLayout,
-	QPushButton,
-	QListWidgetItem,
-	QStackedWidget,
-	QFileDialog,
-	QLayout,
-	QAbstractItemView,
-	QColorDialog,
-	QFormLayout,
-	QLineEdit,
-	QDialogButtonBox,
-	QSizePolicy,
-	QAction,
-	QLayoutItem,
+	QLabel, QMainWindow, QDockWidget, QDialog, QHBoxLayout, QListWidget, QWidget, QVBoxLayout,
+	QPushButton, QListWidgetItem, QStackedWidget, QFileDialog, QLayout, QAbstractItemView,
+	QColorDialog, QFormLayout, QLineEdit, QDialogButtonBox, QSizePolicy, QAction, QLayoutItem,
 	QPlainTextEdit,
 )
 
@@ -229,7 +216,7 @@ class ManageTagDialog(QDialog):
 		self.setFixedSize(self.size())
 		return evt.accept()
 
-class TagsWindow(QDockWidget):
+class TagsWindow(RestorableDockWidget):
 	TAGS_FILENAME = 'tags.json'
 
 	tagEditedSignal = pyqtSignal(C4DTag)
