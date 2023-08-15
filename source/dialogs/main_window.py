@@ -141,7 +141,7 @@ class MainWindow(QMainWindow, RestorableQWidget):
 						break
 	
 	def _createActions(self):
-		self.actionSave = QAction("&Save", self)
+		self.actionSave = QAction("&Save tags and tiles", self)
 		self.actionSave.setShortcut(QKeySequence.Save)
 
 		self.actionPrefs = QAction(QIcon(":preferences.svg"), "&Preferences", self)

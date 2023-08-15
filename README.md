@@ -40,12 +40,21 @@ The following dependencies are required:
 * [pywin32](https://pypi.org/project/pywin32/)
 * [keyboard](https://pypi.org/project/keyboard/)
 * [requests](https://github.com/psf/requests)
+* [psutil](https://pypi.org/project/psutil/)
 
 For packaging additional dependencies are required:
 
 * [GitPython](https://github.com/gitpython-developers/GitPython)
 * [PyInstaller](https://pyinstaller.org/en/stable/)
 * [Pillow](https://github.com/python-pillow/Pillow)
+
+#### Quick start
+
+1. ```git clone https://github.com/wi1k1n/cinema4d_version_manager.git```
+2. ```python -m venv venv```
+3. ```.\venv\Scripts\activate```
+4. ```pip install -r requirements.txt```
+5. ```python .\source\__init__.py```
 
 ## Resources:
 * Awesome Ronald's C4D icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
