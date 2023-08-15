@@ -183,21 +183,35 @@ class TrackBugsWindow(QDialog):
 def CheckForUpdates():
 	# https://stackoverflow.com/a/60716112
 	URLAPI = 'https://api.github.com/repos/wi1k1n/cinema4d_version_manager/releases/latest'
-	URLHUMAN = 'https://github.com/wi1k1n/cinema4d_version_manager/releases/latest'
+	urlHuman = 'https://github.com/wi1k1n/cinema4d_version_manager/releases/latest'
+	ENDL: str = '<br>'
+	URL2HTML = lambda url: f'<a href="{url}">{url}</a>'
+	urlHumanHtml: str = URL2HTML(urlHuman)
 
-	urlHumanHtml: str = f'<a href="{URLHUMAN}">{URLHUMAN}</a>'
 	msgBox: QMessageBox = QMessageBox(None)
 	msgBox.setTextFormat(Qt.TextFormat.RichText)
-	ENDL: str = '<br>'
+	
 	try:
 		resp = requests.get(URLAPI)
 		respJson = resp.json()
 		if 'name' not in respJson:
 			raise('Invalid response')
+		
+		latestVersion = respJson['name']
+		versionPattern = re.compile('v\d\.\d{1,2}\.\d{1,2}')
+		if match := versionPattern.match(latestVersion):
+			latestVersion = match.group()
+		elif 'tag_name' in respJson:
+			if match := versionPattern.match(respJson['tag_name']):
+				latestVersion = match.group()
+		
+		if 'html_url' in respJson:
+			urlHumanHtml = URL2HTML(respJson['html_url'])
+
 		msgBox.setIcon(QMessageBox.Icon.Information)
 		msgBox.setWindowTitle('Latest version found')
 		msgBox.setText(f"{ENDL}Currently running version: v{C4DL_VERSION}"\
-					   f"{ENDL}Latest available version:  {respJson['name']}"\
+					   f"{ENDL}Latest available version:  {latestVersion}"\
 						f"{ENDL}{ENDL}Available on: {urlHumanHtml}")
 	except:
 		msgBox.setIcon(QMessageBox.Icon.Warning)
