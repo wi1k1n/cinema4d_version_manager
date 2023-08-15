@@ -1,4 +1,4 @@
-import sys, os, typing, datetime as dt, json
+import sys, os, typing, datetime as dt, json, requests
 from subprocess import Popen, PIPE
 from functools import partial
 
@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 	QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QStyle, QStyleHintReturn, QStyleOption,
 	QToolBar, QAction, QWidget, QTabWidget, QLayout, QVBoxLayout, QHBoxLayout, QFrame,
 	QScrollArea, QGroupBox, QTreeWidget, QTreeWidgetItem, QStatusBar, QProxyStyle, QInputDialog,
-	QPlainTextEdit, QShortcut, QGridLayout
+	QPlainTextEdit, QShortcut, QGridLayout, QMessageBox
 )
 
 # import qrc_resources
@@ -179,3 +179,29 @@ class TrackBugsWindow(QDialog):
 		self.setLayout(layout)
 		minSize: QSize = self.minimumSizeHint()
 		self.setFixedSize(minSize.width() + 20, minSize.height() + 20)
+
+def CheckForUpdates():
+	# https://stackoverflow.com/a/60716112
+	URLAPI = 'https://api.github.com/repos/wi1k1n/cinema4d_version_manager/releases/latest'
+	URLHUMAN = 'https://github.com/wi1k1n/cinema4d_version_manager/releases/latest'
+
+	urlHumanHtml: str = f'<a href="{URLHUMAN}">{URLHUMAN}</a>'
+	msgBox: QMessageBox = QMessageBox(None)
+	msgBox.setTextFormat(Qt.TextFormat.RichText)
+	ENDL: str = '<br>'
+	try:
+		resp = requests.get(URLAPI)
+		respJson = resp.json()
+		if 'name' not in respJson:
+			raise('Invalid response')
+		msgBox.setIcon(QMessageBox.Icon.Information)
+		msgBox.setWindowTitle('Latest version found')
+		msgBox.setText(f"{ENDL}Currently running version: v{C4DL_VERSION}"\
+					   f"{ENDL}Latest available version:  {respJson['name']}"\
+						f"{ENDL}{ENDL}Available on: {urlHumanHtml}")
+	except:
+		msgBox.setIcon(QMessageBox.Icon.Warning)
+		msgBox.setWindowTitle("Couldn't check for updates")
+		msgBox.setText("An error occured while checking for updates."
+					f"{ENDL}{ENDL}You can check if new version is available on:{ENDL}{urlHumanHtml}")
+	msgBox.exec()

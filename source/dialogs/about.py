@@ -174,5 +174,5 @@ class AboutWindow(FadeInOutDialog):
 	
 	def showEvent(self, evt: QShowEvent):
 		super().showEvent(evt)
-		self.buildLabel.setText(f'R{version.C4DL_VERSION} (Build {version.BUILD_VERSION})')
+		self.buildLabel.setText(f'v{version.C4DL_VERSION} (Build {version.BUILD_VERSION})')
 		self.buildStringCopied = False

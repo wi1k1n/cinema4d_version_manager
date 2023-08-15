@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
 # import qrc_resources
 from dialogs.preferences import PreferencesWindow
 from dialogs.about import AboutWindow
-from dialogs.help import ShortcutsWindow, TrackBugsWindow
+from dialogs.help import ShortcutsWindow, TrackBugsWindow, CheckForUpdates
 from dialogs.tags import TagsWindow, C4DTag
 from dialogs.filtersort import FilterSortWindow
 from dialogs.main_window_tiles import *
@@ -153,6 +153,7 @@ class MainWindow(QMainWindow, RestorableQWidget):
 		self.actionShortcuts.setShortcut("F1")
 		self.actionReportBug = QAction("&Report a bug", self)
 		self.actionReportBug.setShortcut("Ctrl+Shift+B")
+		self.actionCheckUpdates = QAction("&Check for updates", self)
 		
 		self.actionRefresh = QAction("&Refresh", self)
 		self.actionRefresh.setShortcut(QKeySequence.Refresh)
@@ -174,6 +175,7 @@ class MainWindow(QMainWindow, RestorableQWidget):
 		self.actionPrefs.triggered.connect(self.openPreferences)
 		self.actionExit.triggered.connect(sys.exit)
 		self.actionAbout.triggered.connect(self.about)
+		self.actionCheckUpdates.triggered.connect(CheckForUpdates)
 		self.actionShortcuts.triggered.connect(self.help)
 		self.actionReportBug.triggered.connect(lambda: self._showActivateDialog('trackbugs'))
 		self.actionRefresh.triggered.connect(lambda: self.updateTilesWidget())
@@ -244,6 +246,7 @@ class MainWindow(QMainWindow, RestorableQWidget):
 		helpMenu = menuBar.addMenu("&Help")
 		helpMenu.addAction(self.actionShortcuts)
 		helpMenu.addAction(self.actionReportBug)
+		helpMenu.addAction(self.actionCheckUpdates)
 		helpMenu.addAction(self.actionAbout)
 	
 	@staticmethod
