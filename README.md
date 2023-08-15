@@ -4,17 +4,34 @@ C4D Version Manager is a tiny GUI app that finds and collects all your Cinema 4D
 
 <img src="/docs/screenshot_main.png" width="640" height="529" />
 
-### Getting Started
+## Getting Started
 
-#### Pre-built package
+### Pre-built package
 
 1. Download latest version from [Releases](https://github.com/wi1k1n/cinema4d_version_manager/releases)
-2. Run and add your search paths
-3. Save preferences, rescan
-4. Enjoy
-5. \* Learn shortcuts to make your workflow more efficient
+2. Add some search paths to the list (d&d from explorer works), e.g. *C:\Program Files* and *D:\Downloads*
+3. Save preferences using [Save Preferences] button
+4. Close preferences and rescan your paths: Edit -> Rescan (or Ctrl+F5)
+5. Your c4d installations/packages should appear as tiles
+6. You can already run C4D instances by clicking on icon (or via context menu on them)
+7. \* Learn shortcuts to make your workflow more efficient (Help -> Shortcuts)
 
-#### From source code
+#### Tags workflow
+
+1. Create tags in tags window (*double click*)
+2. Assign them to c4d tiles (d&d).
+3. Use *Shift + d&d* to remove tag
+4. Save tags and tag assignments using *Ctrl+S*
+
+#### Managing C4D processes
+
+1. Clicking on tile can run/restart/kill C4D (check shortcuts)
+2. Colored square flag shows current C4D state:
+	- 🟩 - c4d is currently running
+	- 🟦 - c4d was closed and detached
+	- 🟥 - c4d was forcely killed
+
+### From source code
 
 The following dependencies are required:
 
@@ -22,8 +39,15 @@ The following dependencies are required:
 * [PyQt5](https://pypi.org/project/PyQt5/)
 * [pywin32](https://pypi.org/project/pywin32/)
 * [keyboard](https://pypi.org/project/keyboard/)
+* [requests](https://github.com/psf/requests)
 
-### Resources:
+For packaging additional dependencies are required:
+
+* [GitPython](https://github.com/gitpython-developers/GitPython)
+* [PyInstaller](https://pyinstaller.org/en/stable/)
+* [Pillow](https://github.com/python-pillow/Pillow)
+
+## Resources:
 * Awesome Ronald's C4D icons: https://backstage.maxon.net/topic/3064/cinema-4d-icon-pack
 
 ### TODOs:
