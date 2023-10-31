@@ -22,6 +22,15 @@ from dialogs.about import AboutWindow
 from gui_utils import *
 from utils import *
 	
+import logging
+
+LOGS_PATH = os.path.join(GetPrefsFolderPath(), 'c4dvm.log')
+logger = logging.getLogger(__name__)
+loggerFileHandler = logging.FileHandler(LOGS_PATH)
+loggerFileHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(loggerFileHandler)
+
+
 # TODO: here for now, please remove once not needed!
 def testApp():
 	app: QApplication = QApplication(sys.argv)
@@ -72,9 +81,12 @@ class C4DVersionManagerApplication(QApplication):
 		self.trayIcon.setVisible(True)
 
 if __name__ == "__main__":
-	version._loadBuildInfo(os.getcwd())
-	app: C4DVersionManagerApplication = C4DVersionManagerApplication(sys.argv)
-	sys.exit(app.exec_())
+	try:
+		version._loadBuildInfo(os.getcwd())
+		app: C4DVersionManagerApplication = C4DVersionManagerApplication(sys.argv)
+		sys.exit(app.exec_())
+	except Exception as e:
+		logger.exception("C4DVersionManager application crashed")
 	
 	# testApp()
 	# # https://stackoverflow.com/a/52617714
